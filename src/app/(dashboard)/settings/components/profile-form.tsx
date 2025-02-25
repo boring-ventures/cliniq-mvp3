@@ -31,7 +31,7 @@ import { profileFormSchema } from "@/lib/validations/profile";
 import type { ProfileFormValues } from "@/lib/validations/profile";
 
 export function ProfileForm() {
-  const { profile, user } = useAuth();
+  const { profile  } = useAuth();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<ProfileFormValues | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -99,6 +99,7 @@ export function ProfileForm() {
         avatarUrl: null,
       });
     } catch (error) {
+      console.error("Error updating profile:", error);
       toast({
         title: "Error",
         description: "Failed to update profile. Please try again.",
@@ -118,7 +119,7 @@ export function ProfileForm() {
           <FormField
             control={form.control}
             name="avatarUrl"
-            render={({ field: { onChange, value, ...field } }) => (
+            render={({ field: { onChange, ...field } }) => (
               <FormItem>
                 <FormLabel>Profile Picture</FormLabel>
                 <FormControl>

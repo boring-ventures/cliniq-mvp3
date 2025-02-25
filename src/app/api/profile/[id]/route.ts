@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
@@ -16,7 +15,7 @@ export async function GET(
     }
 
     const profile = await prisma.profile.findUnique({
-      where: { userId:id },
+      where: { userId: id },
     });
 
     if (!profile) {
@@ -58,7 +57,7 @@ export async function PATCH(
       return new Response(JSON.stringify({ error: "Profile ID is required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
-      }); 
+      });
     }
 
     // Check if profile exists

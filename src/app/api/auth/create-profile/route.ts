@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { RoleEnum } from "@prisma/client";
 
@@ -31,9 +30,9 @@ export async function POST(req: Request) {
 
     if (existingProfile) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: "Profile already exists for this user",
-          profile: existingProfile 
+          profile: existingProfile,
         }),
         {
           status: 200, // Return 200 instead of 409 to avoid errors during sign-up
@@ -60,7 +59,7 @@ export async function POST(req: Request) {
     }
 
     console.log(`Creating profile for user ${userId} with email ${email}`);
-    
+
     // Create profile in one step for simplicity during sign-up
     const profile = await prisma.profile.create({
       data: {
@@ -76,7 +75,7 @@ export async function POST(req: Request) {
     });
 
     console.log(`Profile created successfully: ${profile.id}`);
-    
+
     return new Response(JSON.stringify({ profile }), {
       status: 201,
       headers: { "Content-Type": "application/json" },
@@ -95,4 +94,4 @@ export async function POST(req: Request) {
   } finally {
     await prisma.$disconnect().catch(console.error);
   }
-} 
+}

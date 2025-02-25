@@ -1,4 +1,4 @@
-import type { UserRole } from "@prisma/client";
+// import type { UserRole } from "@prisma/client";
 
 export interface Profile {
   id: string;
@@ -11,4 +11,4 @@ export interface Profile {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
-} 
+}

@@ -5,16 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import {
-  Bell,
-  Send,
-  Clock,
-  Calendar,
-  RefreshCw,
-  Plus,
-  Search,
-  Pencil,
-} from "lucide-react";
+import { Send, Clock, Calendar, Plus, Search, Pencil } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -66,7 +57,7 @@ export default function RemindersPage() {
   ]);
   const [patientSearch, setPatientSearch] = useState("");
   const [showPatientResults, setShowPatientResults] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<{
+  const [_selectedPatient, setSelectedPatient] = useState<{
     id: string;
     name: string;
     phone: string;
@@ -143,32 +134,6 @@ export default function RemindersPage() {
     { id: "5", name: "Lisa Anderson", phone: "+1 (555) 876-5432" },
   ];
 
-  const addScheduleItem = () => {
-    const newId =
-      followupSchedule.length > 0
-        ? Math.max(...followupSchedule.map((item) => item.id)) + 1
-        : 1;
-
-    setFollowupSchedule([
-      ...followupSchedule,
-      { id: newId, date: undefined, time: "", message: "" },
-    ]);
-  };
-
-  const removeScheduleItem = (id: number) => {
-    if (followupSchedule.length > 1) {
-      setFollowupSchedule(followupSchedule.filter((item) => item.id !== id));
-    }
-  };
-
-  const updateScheduleItem = (id: number, field: string, value: any) => {
-    setFollowupSchedule(
-      followupSchedule.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    );
-  };
-
   const handleReminderTypeChange = (value: string) => {
     setReminderType(value);
     if (value === "followup") {
@@ -206,7 +171,11 @@ export default function RemindersPage() {
     }
   };
 
-  const updateTempScheduleItem = (id: number, field: string, value: any) => {
+  const updateTempScheduleItem = (
+    id: number,
+    field: string,
+    value: string | Date | undefined
+  ) => {
     setTempFollowupSchedule(
       tempFollowupSchedule.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
@@ -263,7 +232,9 @@ export default function RemindersPage() {
   };
 
   // Add a function to handle editing follow-up reminders
-  const handleEditFollowUp = (reminder: any) => {
+  const handleEditFollowUp = (reminder: {
+    scheduledFor: string;
+  }) => {
     // Set up the temporary follow-up schedule based on the reminder's data
     // This is a simplified example - in a real app, you'd fetch the actual follow-up schedule
     setTempFollowupSchedule([
@@ -297,7 +268,7 @@ export default function RemindersPage() {
             <DialogHeader>
               <DialogTitle>Create New Reminder</DialogTitle>
               <DialogDescription>
-                Set up a reminder for a patient's appointment or follow-up.
+                Set up a reminder for a patient&apos;s appointment or follow-up.
               </DialogDescription>
             </DialogHeader>
 
@@ -912,6 +883,12 @@ export default function RemindersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {_selectedPatient && (
+        <div className="text-sm text-gray-500 mt-1">
+          Selected: {_selectedPatient.name}
+        </div>
+      )}
     </div>
   );
 }

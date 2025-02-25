@@ -1,7 +1,5 @@
 "use client";
 
-import { useState, useRef } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,7 +14,6 @@ import {
 } from "@/components/ui/table";
 import {
   Search,
-  Filter,
   Plus,
   Users,
   UserCheck,
@@ -25,14 +22,9 @@ import {
   Edit,
   Save,
   X,
-  Check,
-  Clock,
-  MoreVertical,
   Upload,
   Download,
-  CreditCard,
   Eye,
-  Calendar,
   Briefcase,
   Stethoscope,
 } from "lucide-react";
@@ -48,19 +40,12 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileUploader } from "@/components/file-uploader";
 
 // Mock staff data
 const staffMembers = [
@@ -298,8 +283,6 @@ export default function StaffPage() {
   const [editedStaff, setEditedStaff] = useState(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [staffNotes, setStaffNotes] = useState("");
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef(null);
   const [filterRole, setFilterRole] = useState("all");
   const [newStaffModalOpen, setNewStaffModalOpen] = useState(false);
   const [newStaff, setNewStaff] = useState({
@@ -374,6 +357,9 @@ export default function StaffPage() {
     const updatedStaff = staffMembers.map((s) =>
       s.id === editedStaff.id ? editedStaff : s
     );
+
+    // Use the updatedStaff variable
+    setStaffMembers(updatedStaff);
 
     // In a real app, you would update the global state or make an API call
 
@@ -468,49 +454,13 @@ export default function StaffPage() {
       s.id === updatedStaff.id ? updatedStaff : s
     );
 
-    // In a real app, you would update the global state or make an API call
+    // Use the updatedStaffMembers variable
+    setStaffMembers(updatedStaffMembers);
 
     setEditingNotes(false);
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    // In a real app, you would handle file uploads here
-    // For this demo, we'll just log the files
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      console.log("Dropped files:", e.dataTransfer.files);
-      // Process files...
-    }
-  };
-
-  const handleBrowseClick = () => {
-    fileInputRef.current.click();
-  };
-
-  const handleFileInputChange = (e) => {
-    // In a real app, you would handle file uploads here
-    // For this demo, we'll just log the files
-    if (e.target.files && e.target.files.length > 0) {
-      console.log("Selected files:", e.target.files);
-      // Process files...
-    }
-  };
-
-  const handleDownload = (fileId) => {
-    // In a real app, you would handle file downloads here
-    console.log("Downloading file:", fileId);
-  };
+  // Filter staff based on search query and role filter
 
   // Filter staff based on search query and role filter
   const filteredStaff = staffMembers.filter((staff) => {
@@ -531,7 +481,9 @@ export default function StaffPage() {
       case "Receptionist":
         return <UserCheck className="mr-1 h-3 w-3" />;
       case "Dental Assistant":
-        return <UserPlus className="mr-1 h-3 w-3" />;
+        return <Briefcase className="mr-1 h-3 w-3" />;
+      case "Office Manager":
+        return <Users className="mr-1 h-3 w-3" />;
       default:
         return null;
     }
@@ -540,13 +492,15 @@ export default function StaffPage() {
   const getRoleBadgeClass = (role) => {
     switch (role) {
       case "Doctor":
-        return "bg-blue-900 text-blue-100 border-blue-700 hover:bg-blue-900";
+        return "bg-blue-500 text-white";
       case "Receptionist":
-        return "bg-green-900 text-green-100 border-green-700 hover:bg-green-900";
+        return "bg-green-500 text-white";
       case "Dental Assistant":
-        return "bg-purple-900 text-purple-100 border-purple-700 hover:bg-purple-900";
+        return "bg-purple-500 text-white";
+      case "Office Manager":
+        return "bg-yellow-500 text-black";
       default:
-        return "bg-gray-900 text-gray-100 border-gray-700 hover:bg-gray-900";
+        return "bg-gray-500 text-white";
     }
   };
 
@@ -1421,7 +1375,11 @@ export default function StaffPage() {
                 <div className="border rounded-lg p-6">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-bold">Documents</h3>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBrowseClick}
+                    >
                       <Upload className="mr-2 h-4 w-4" />
                       Upload Document
                     </Button>
@@ -2115,8 +2073,7 @@ export default function StaffPage() {
   );
 }
 
-// Helper functions
-function getRoleBadgeClass(role) {
+export function getRoleBadgeClass(role) {
   switch (role) {
     case "Doctor":
       return "bg-blue-500 text-white";
@@ -2128,20 +2085,5 @@ function getRoleBadgeClass(role) {
       return "bg-yellow-500 text-black";
     default:
       return "bg-gray-500 text-white";
-  }
-}
-
-function getRoleIcon(role) {
-  switch (role) {
-    case "Doctor":
-      return <Stethoscope className="mr-1 h-3 w-3" />;
-    case "Receptionist":
-      return <UserCheck className="mr-1 h-3 w-3" />;
-    case "Dental Assistant":
-      return <Briefcase className="mr-1 h-3 w-3" />;
-    case "Office Manager":
-      return <Users className="mr-1 h-3 w-3" />;
-    default:
-      return null;
   }
 }

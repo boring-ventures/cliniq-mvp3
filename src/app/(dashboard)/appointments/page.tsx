@@ -298,8 +298,7 @@ export default function AppointmentsPage() {
                   className="rounded-md border"
                 />
                 <p className="mt-4 text-muted-foreground">
-                  For detailed calendar view with filtering options, click "Open
-                  Full Calendar"
+                  For detailed calendar view with filtering options, click &quot;Open Full Calendar&quot;
                 </p>
               </div>
             </CardContent>

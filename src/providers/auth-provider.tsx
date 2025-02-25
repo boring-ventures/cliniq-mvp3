@@ -11,8 +11,14 @@ type AuthContextType = {
   session: Session | null;
   profile: Profile | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string) => Promise<any>;
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ user: User | null; session: Session | null }>;
+  signUp: (
+    email: string,
+    password: string
+  ) => Promise<{ user: User | null; session: Session | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -21,8 +27,8 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   profile: null,
   isLoading: true,
-  signIn: async () => {},
-  signUp: async () => {},
+  signIn: async () => ({ user: null, session: null }),
+  signUp: async () => ({ user: null, session: null }),
   signOut: async () => {},
 });
 
@@ -175,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               "No profile found, redirecting to complete profile setup"
             );
             router.push("/complete-profile");
-            return;
+            return { user: null, session: null };
           }
 
           console.log("Profile fetched successfully, redirecting to dashboard");
@@ -190,6 +196,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         router.push("/dashboard");
       }
+
+      return { user: data.user, session: data.session };
     } catch (error) {
       console.error("Sign in process failed:", error);
       throw error;

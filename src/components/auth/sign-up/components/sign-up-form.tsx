@@ -16,14 +16,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/utils/password-input";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
 import type { SignUpFormData } from "@/types/auth/sign-up";
 import { signUpFormSchema } from "@/types/auth/sign-up";
 import { toast } from "@/components/ui/use-toast";
@@ -31,7 +23,6 @@ import Image from "next/image";
 import { uploadAvatar } from "@/lib/supabase/upload-avatar";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -40,12 +31,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import * as z from "zod";
 
-// Add this interface definition
-interface SignUpFormProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-export function SignUpForm({ className, ...props }: SignUpFormProps) {
+export function SignUpForm({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);

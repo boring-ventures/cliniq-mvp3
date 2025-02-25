@@ -20,7 +20,7 @@ import { profileFormSchema } from "@/lib/validations/profile";
 import type { ProfileFormValues } from "@/lib/validations/profile";
 
 export function ProfileForm() {
-  const { profile, user } = useAuth();
+  const { profile } = useAuth();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -46,6 +46,7 @@ export function ProfileForm() {
         description: "Your profile has been updated successfully.",
       });
     } catch (error) {
+      console.error("Error updating profile:", error);
       toast({
         title: "Error",
         description: "Failed to update profile. Please try again.",
@@ -67,7 +68,8 @@ export function ProfileForm() {
                 <Input placeholder="shadcn" {...field} />
               </FormControl>
               <FormDescription>
-                This is your public display name. It can be your real name or a pseudonym.
+                This is your public display name. It can be your real name or a
+                pseudonym.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -118,4 +120,4 @@ export function ProfileForm() {
       </form>
     </Form>
   );
-} 
+}

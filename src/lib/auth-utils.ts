@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient, Permission } from "@prisma/client";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 const prisma = new PrismaClient();
+
+// Define authOptions directly in this file as a temporary solution
+export const authOptions = {
+  providers: [],
+  secret: process.env.NEXTAUTH_SECRET || "your-secret-key",
+};
 
 /**
  * Get the current authenticated user from the session
@@ -15,22 +20,27 @@ export async function getCurrentUser() {
     return null;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: {
-      role: {
-        include: {
-          permissions: {
-            select: {
-              permission: true,
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: {
+        role: {
+          include: {
+            permissions: {
+              select: {
+                permission: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  return user;
+    return user;
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    return null;
+  }
 }
 
 /**

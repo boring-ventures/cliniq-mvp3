@@ -28,7 +28,11 @@ export default function NewAppointmentPage() {
   const [date, setDate] = useState<Date>();
   const [patientSearch, setPatientSearch] = useState("");
   const [showPatientResults, setShowPatientResults] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<{id: string, name: string, phone: string} | null>(null);
+  const [_selectedPatient, setSelectedPatient] = useState<{
+    id: string;
+    name: string;
+    phone: string;
+  } | null>(null);
   const [contactPhone, setContactPhone] = useState("");
 
   // Mock patient data
@@ -48,30 +52,38 @@ export default function NewAppointmentPage() {
     { id: "4", name: "Dr. Johnson", specialty: "Oral Surgeon" },
   ];
 
-  const handlePatientSelect = (patient: {id: string, name: string, phone: string}) => {
+  const handlePatientSelect = (patient: {
+    id: string;
+    name: string;
+    phone: string;
+  }) => {
     setSelectedPatient(patient);
     setPatientSearch(patient.name);
     setContactPhone(patient.phone);
     setShowPatientResults(false);
   };
 
-  const filteredPatients = patients.filter(patient => 
-    patient.name.toLowerCase().includes(patientSearch.toLowerCase()) || 
-    patient.phone.includes(patientSearch)
+  const filteredPatients = patients.filter(
+    (patient) =>
+      patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      patient.phone.includes(patientSearch)
   );
 
   // Handle clicking outside the dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('#patient-search') && !target.closest('.patient-results')) {
+      if (
+        !target.closest("#patient-search") &&
+        !target.closest(".patient-results")
+      ) {
         setShowPatientResults(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -86,15 +98,17 @@ export default function NewAppointmentPage() {
           </Link>
           <h1 className="text-2xl font-bold">New Appointment</h1>
         </div>
-        
+
         <Card className="bg-black text-white border border-gray-800">
           <CardContent className="p-6">
             <h2 className="text-xl font-bold mb-6">Appointment Details</h2>
-            
+
             <form className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="patient-search" className="text-white">Patient</Label>
+                  <Label htmlFor="patient-search" className="text-white">
+                    Patient
+                  </Label>
                   <div className="relative">
                     <Input
                       id="patient-search"
@@ -112,7 +126,7 @@ export default function NewAppointmentPage() {
                       className="pr-10 bg-black border-gray-700 text-white"
                     />
                     <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
-                    
+
                     {showPatientResults && patientSearch && (
                       <div className="absolute z-10 mt-1 w-full rounded-md bg-gray-900 border border-gray-700 shadow-md">
                         <ul className="max-h-60 overflow-auto rounded-md py-1 text-base">
@@ -123,13 +137,18 @@ export default function NewAppointmentPage() {
                                 className="relative cursor-pointer select-none py-2 px-3 hover:bg-gray-800"
                                 onClick={() => handlePatientSelect(patient)}
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter") handlePatientSelect(patient);
+                                  if (e.key === "Enter")
+                                    handlePatientSelect(patient);
                                 }}
                                 tabIndex={0}
                               >
                                 <div className="flex justify-between">
-                                  <span className="font-medium">{patient.name}</span>
-                                  <span className="text-gray-400">{patient.phone}</span>
+                                  <span className="font-medium">
+                                    {patient.name}
+                                  </span>
+                                  <span className="text-gray-400">
+                                    {patient.phone}
+                                  </span>
                                 </div>
                               </li>
                             ))
@@ -143,11 +162,16 @@ export default function NewAppointmentPage() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="doctor" className="text-white">Doctor</Label>
+                  <Label htmlFor="doctor" className="text-white">
+                    Doctor
+                  </Label>
                   <Select>
-                    <SelectTrigger id="doctor" className="bg-black border-gray-700 text-white">
+                    <SelectTrigger
+                      id="doctor"
+                      className="bg-black border-gray-700 text-white"
+                    >
                       <SelectValue placeholder="Select doctor" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-900 border-gray-700 text-white">
@@ -160,10 +184,12 @@ export default function NewAppointmentPage() {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="contact-phone" className="text-white">Contact Phone</Label>
+                  <Label htmlFor="contact-phone" className="text-white">
+                    Contact Phone
+                  </Label>
                   <Input
                     id="contact-phone"
                     placeholder="Enter contact phone number"
@@ -173,10 +199,12 @@ export default function NewAppointmentPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="date" className="text-white">Date</Label>
+                  <Label htmlFor="date" className="text-white">
+                    Date
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -202,11 +230,16 @@ export default function NewAppointmentPage() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="time" className="text-white">Time</Label>
+                  <Label htmlFor="time" className="text-white">
+                    Time
+                  </Label>
                   <Select>
-                    <SelectTrigger id="time" className="bg-black border-gray-700 text-white">
+                    <SelectTrigger
+                      id="time"
+                      className="bg-black border-gray-700 text-white"
+                    >
                       <SelectValue placeholder="Select time" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-900 border-gray-700 text-white">
@@ -231,12 +264,17 @@ export default function NewAppointmentPage() {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="duration" className="text-white">Duration</Label>
+                  <Label htmlFor="duration" className="text-white">
+                    Duration
+                  </Label>
                   <Select defaultValue="30">
-                    <SelectTrigger id="duration" className="bg-black border-gray-700 text-white">
+                    <SelectTrigger
+                      id="duration"
+                      className="bg-black border-gray-700 text-white"
+                    >
                       <SelectValue placeholder="Select duration" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-900 border-gray-700 text-white">
@@ -249,11 +287,16 @@ export default function NewAppointmentPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="status" className="text-white">Status</Label>
+                  <Label htmlFor="status" className="text-white">
+                    Status
+                  </Label>
                   <Select defaultValue="confirmed">
-                    <SelectTrigger id="status" className="bg-black border-gray-700 text-white">
+                    <SelectTrigger
+                      id="status"
+                      className="bg-black border-gray-700 text-white"
+                    >
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-900 border-gray-700 text-white">
@@ -264,24 +307,40 @@ export default function NewAppointmentPage() {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="reason" className="text-white">Reason for Visit</Label>
+                <Label htmlFor="reason" className="text-white">
+                  Reason for Visit
+                </Label>
                 <Textarea
                   id="reason"
                   placeholder="Enter the reason for the appointment"
                   className="min-h-[100px] bg-black border-gray-700 text-white"
                 />
               </div>
-              
+
               <div className="flex justify-end gap-2">
-                <Button variant="outline" className="border-gray-700 text-white hover:bg-gray-800">Cancel</Button>
-                <Button className="bg-white text-black hover:bg-gray-200">Create Appointment</Button>
+                <Button
+                  variant="outline"
+                  className="border-gray-700 text-white hover:bg-gray-800"
+                >
+                  Cancel
+                </Button>
+                <Button className="bg-white text-black hover:bg-gray-200">
+                  Create Appointment
+                </Button>
               </div>
             </form>
+
+            {_selectedPatient && (
+              <div className="mt-2 text-sm text-gray-400">
+                Selected patient: {_selectedPatient.name} (ID:{" "}
+                {_selectedPatient.id})
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
   );
-} 
+}

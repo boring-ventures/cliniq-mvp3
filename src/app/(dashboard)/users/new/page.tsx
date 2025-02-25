@@ -79,7 +79,7 @@ export default function NewUserPage() {
       setIsSubmitting(true);
 
       // Create user in Supabase Auth
-      const { data: userData, error: authError } =
+      const { error: authError } =
         await supabase.functions.invoke("create-user", {
           body: {
             email: values.email,

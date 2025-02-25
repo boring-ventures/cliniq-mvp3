@@ -56,10 +56,9 @@ export async function uploadAvatar(
     );
     console.log(`File type: ${file.type}, size: ${file.size} bytes`);
 
-    // Skip bucket check and directly try to upload
     // Upload the file to the specified bucket
     console.log(`Uploading to bucket: ${STORAGE_BUCKET}`);
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(STORAGE_BUCKET)
       .upload(fileName, file, {
         cacheControl: "3600",

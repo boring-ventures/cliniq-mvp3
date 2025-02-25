@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Permission, UserRole } from "@prisma/client";
+import { Permission } from "@prisma/client";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import {
   Table,
@@ -31,16 +31,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Edit,
-  MoreHorizontal,
-  Search,
-  Trash2,
-  UserCog,
-  Shield,
-} from "lucide-react";
+import { Edit, MoreHorizontal, Search, Trash2, UserCog } from "lucide-react";
 import { PermissionGuard } from "@/components/auth/permission-guard";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
@@ -64,11 +56,7 @@ export function UserList() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke("get-users");
@@ -89,7 +77,11 @@ export function UserList() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase.functions]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   async function handleDeleteUser() {
     if (!userToDelete) return;

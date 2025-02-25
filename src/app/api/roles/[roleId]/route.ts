@@ -126,7 +126,7 @@ export async function PATCH(
     }
 
     // Start a transaction to update role and permissions
-    const updatedRole = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // Update basic role information
       const role = await tx.role.update({
         where: { id: roleId },

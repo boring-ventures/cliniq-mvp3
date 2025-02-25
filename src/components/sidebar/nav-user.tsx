@@ -2,10 +2,7 @@
 
 import Link from "next/link";
 import {
-  BadgeCheck,
-  Bell,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
   Settings,
   User,

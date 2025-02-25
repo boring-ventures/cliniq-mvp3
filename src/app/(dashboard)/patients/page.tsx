@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +16,6 @@ import {
 import {
   Search,
   Filter,
-  Plus,
   Users,
   UserCheck,
   UserPlus,
@@ -29,8 +27,6 @@ import {
   Clock,
   MoreVertical,
   Upload,
-  Download,
-  CreditCard,
   Eye,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -51,8 +47,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Mock patient data
-const patients = [
+// Rename the mock data array
+const patientsData = [
   {
     id: "1",
     name: "Sarah Thompson",
@@ -195,6 +191,7 @@ export default function PatientsPage() {
   const [medicalNotes, setMedicalNotes] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const [patients, setPatients] = useState(patientsData);
 
   const handleViewPatient = (patient) => {
     setSelectedPatient(patient);
@@ -219,11 +216,8 @@ export default function PatientsPage() {
   const handleSaveChanges = () => {
     // In a real app, you would save changes to the backend here
     // For this demo, we'll just update the local state
-    setSelectedPatient(editedPatient);
-
-    // Update the patient in the patients array
-    const updatedPatients = patients.map((p) =>
-      p.id === editedPatient.id ? editedPatient : p
+    setPatients(
+      patients.map((p) => (p.id === editedPatient.id ? editedPatient : p))
     );
 
     // In a real app, you would update the global state or make an API call

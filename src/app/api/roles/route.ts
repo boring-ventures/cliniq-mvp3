@@ -31,7 +31,12 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build filter conditions
-    const where: any = {};
+    const where: {
+      OR?: Array<{
+        name?: { contains: string; mode: "insensitive" };
+        description?: { contains: string; mode: "insensitive" };
+      }>;
+    } = {};
 
     if (search) {
       where.OR = [

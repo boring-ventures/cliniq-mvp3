@@ -3,7 +3,6 @@ import {
   Calendar,
   Users,
   Package,
-  UserCog,
   DollarSign,
   Building,
   User,
