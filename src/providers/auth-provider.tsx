@@ -11,8 +11,8 @@ type AuthContextType = {
   session: Session | null;
   profile: Profile | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<any>;
+  signUp: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
 };
 
@@ -78,10 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return data.profile;
     } catch (error) {
       console.error(`Error fetching profile for user ${userId}:`, error);
-      // Don't throw for 404 errors, just return null
-      if (error.message && error.message.includes("Profile not found")) {
-        return null;
-      }
       setProfile(null);
       throw error;
     }

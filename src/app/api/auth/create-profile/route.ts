@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import type { RoleEnum, Prisma } from "@prisma/client";
+import type { RoleEnum } from "@prisma/client";
 
+// This route is specifically for creating profiles during sign-up
+// It doesn't require authentication
 export async function POST(req: Request) {
   try {
-    console.log("Received request to create profile");
+    console.log("Received request to create profile during sign-up");
     const json = await req.json();
     const {
       firstName,
@@ -29,9 +31,12 @@ export async function POST(req: Request) {
 
     if (existingProfile) {
       return new Response(
-        JSON.stringify({ error: "Profile already exists for this user" }),
+        JSON.stringify({ 
+          error: "Profile already exists for this user",
+          profile: existingProfile 
+        }),
         {
-          status: 409,
+          status: 200, // Return 200 instead of 409 to avoid errors during sign-up
           headers: { "Content-Type": "application/json" },
         }
       );
@@ -54,39 +59,30 @@ export async function POST(req: Request) {
       }
     }
 
-    // Create minimal profile first
+    console.log(`Creating profile for user ${userId} with email ${email}`);
+    
+    // Create profile in one step for simplicity during sign-up
     const profile = await prisma.profile.create({
       data: {
-        userId: userId,
+        userId,
         email: email || "",
         hashedPassword: "", // Empty password, should be set properly
+        firstName: firstName || null,
+        lastName: lastName || null,
+        avatarUrl: avatarUrl || null,
         role: role as RoleEnum,
         isActive: true,
       },
     });
 
-    // If successful, update with additional fields
-    if (profile) {
-      const updatedProfile = await prisma.profile.update({
-        where: { id: profile.id },
-        data: {
-          firstName: firstName || null,
-          lastName: lastName || null,
-          avatarUrl: avatarUrl || null,
-        },
-      });
-
-      return new Response(JSON.stringify({ profile: updatedProfile }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
+    console.log(`Profile created successfully: ${profile.id}`);
+    
     return new Response(JSON.stringify({ profile }), {
-      status: 200,
+      status: 201,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    console.error("Error creating profile:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return new Response(
@@ -99,40 +95,4 @@ export async function POST(req: Request) {
   } finally {
     await prisma.$disconnect().catch(console.error);
   }
-}
-
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const role = searchParams.get("role");
-    const isActive = searchParams.get("isActive");
-    const firstName = searchParams.get("firstName");
-    const lastName = searchParams.get("lastName");
-
-    const whereClause: Prisma.ProfileWhereInput = {};
-
-    if (role) whereClause.role = role as RoleEnum;
-    if (isActive !== null) whereClause.isActive = isActive === "true";
-    if (firstName)
-      whereClause.firstName = { contains: firstName, mode: "insensitive" };
-    if (lastName)
-      whereClause.lastName = { contains: lastName, mode: "insensitive" };
-
-    const profiles = await prisma.profile.findMany({
-      where: whereClause,
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    return NextResponse.json({ profiles });
-  } catch (error) {
-    console.error("Error fetching profiles:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect().catch(console.error);
-  }
-}
+} 

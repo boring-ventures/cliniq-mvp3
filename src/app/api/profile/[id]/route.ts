@@ -3,69 +3,121 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log(`GET profile request received:`, request.url);
-    const id = params.id;
-    console.log(`GET profile request for profile ${id}`);
+    const id = (await params).id;
 
     if (!id) {
-      console.error("No profile ID provided in GET request");
-      return NextResponse.json(
-        { error: "Profile ID is required" },
-        { status: 400 }
-      );
-    }
-
-    console.log(`Fetching profile with ID ${id}`);
-    try {
-      const profile = await prisma.profile.findUnique({
-        where: { id },
+      return new Response(JSON.stringify({ error: "Profile ID is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
       });
-
-      if (!profile) {
-        console.error(`Profile not found with ID ${id}`);
-        return NextResponse.json(
-          { error: "Profile not found" },
-          { status: 404 }
-        );
-      }
-
-      console.log(`Profile found with ID ${id}`);
-      return NextResponse.json({ profile });
-    } catch (dbError) {
-      console.error(`Database error fetching profile ${id}:`, dbError);
-      throw dbError;
     }
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId:id },
+    });
+
+    if (!profile) {
+      return new Response(JSON.stringify({ error: "Profile not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ profile }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error("Error fetching profile:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch profile. Please try again." },
-      { status: 500 }
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return new Response(
+      JSON.stringify({ error: "Internal server error", details: errorMessage }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
+  } finally {
+    await prisma.$disconnect().catch(console.error);
   }
 }
 
 export async function PATCH(
   request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const id = (await params).id;
+    const json = await request.json();
+    const { firstName, lastName, avatarUrl, isActive } = json;
+
+    if (!id) {
+      return new Response(JSON.stringify({ error: "Profile ID is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }); 
+    }
+
+    // Check if profile exists
+    const existingProfile = await prisma.profile.findUnique({
+      where: { userId: id },
+    });
+
+    if (!existingProfile) {
+      return new Response(JSON.stringify({ error: "Profile not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Update profile
+    const updatedProfile = await prisma.profile.update({
+      where: { id },
+      data: {
+        firstName:
+          firstName !== undefined ? firstName : existingProfile.firstName,
+        lastName: lastName !== undefined ? lastName : existingProfile.lastName,
+        avatarUrl:
+          avatarUrl !== undefined ? avatarUrl : existingProfile.avatarUrl,
+        isActive: isActive !== undefined ? isActive : existingProfile.isActive,
+      },
+    });
+
+    return new Response(JSON.stringify({ profile: updatedProfile }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return new Response(
+      JSON.stringify({ error: "Internal server error", details: errorMessage }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } finally {
+    await prisma.$disconnect().catch(console.error);
+  }
+}
+
+export async function DELETE(
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`PATCH profile request received:`, request.url);
     const id = params.id;
 
     if (!id) {
-      console.error("No profile ID provided in PATCH request");
-      return NextResponse.json(
-        { error: "Profile ID is required" },
-        { status: 400 }
-      );
+      return new Response(JSON.stringify({ error: "Profile ID is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
-
-    // Parse the JSON body
-    const json = await request.json();
-    console.log("PATCH request body:", json);
 
     // Check if profile exists
     const existingProfile = await prisma.profile.findUnique({
@@ -73,30 +125,41 @@ export async function PATCH(
     });
 
     if (!existingProfile) {
-      console.error(`Profile not found with ID ${id} during update`);
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      return new Response(JSON.stringify({ error: "Profile not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // Update only the fields that exist in the schema
-    console.log(`Updating profile with ID ${id}`);
-    const profile = await prisma.profile.update({
+    // Instead of deleting, deactivate the profile
+    const deactivatedProfile = await prisma.profile.update({
       where: { id },
       data: {
-        firstName: json.firstName,
-        lastName: json.lastName,
-        avatarUrl: json.avatarUrl,
-        // Only include fields that exist in your schema
+        isActive: false,
       },
     });
 
-    console.log(`Profile updated successfully with ID ${id}`);
-    return NextResponse.json({ profile });
-  } catch (error) {
-    console.error("Error updating profile:", error);
-
-    return NextResponse.json(
-      { error: "Failed to update profile. Please try again." },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({
+        message: "Profile deactivated successfully",
+        profile: deactivatedProfile,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
     );
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return new Response(
+      JSON.stringify({ error: "Internal server error", details: errorMessage }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } finally {
+    await prisma.$disconnect().catch(console.error);
   }
 }

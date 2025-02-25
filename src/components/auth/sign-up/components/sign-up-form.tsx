@@ -170,7 +170,9 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
         avatarUrl,
       });
 
-      const response = await fetch("/api/profile", {
+      console.log("Sending POST request to /api/auth/create-profile");
+
+      const response = await fetch("/api/auth/create-profile", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -181,6 +183,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
           firstName: formData.firstName,
           lastName: formData.lastName,
           avatarUrl,
+          role: formData.role || "USER",
         }),
       });
 
@@ -190,6 +193,15 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
       }
 
       console.log("User profile created successfully");
+
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Your account has been created successfully!",
+        variant: "default",
+      });
+
+      // Navigate to dashboard
       router.push("/dashboard");
     } catch (error) {
       console.error("User creation error:", error);
