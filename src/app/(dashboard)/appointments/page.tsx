@@ -276,13 +276,23 @@ export default function AppointmentsPage() {
 
         <TabsContent value="calendar" className="mt-0">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Calendar View</CardTitle>
+              <Link href="/appointments/calendar">
+                <Button variant="outline" size="sm">
+                  Open Full Calendar
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent>
-              <div className="h-[600px] flex items-center justify-center border rounded-lg">
-                <p className="text-muted-foreground">
-                  Calendar view will be implemented here
+              <div className="h-[600px] flex flex-col items-center justify-center border rounded-lg">
+                <Calendar
+                  mode="single"
+                  selected={new Date()}
+                  className="rounded-md border"
+                />
+                <p className="mt-4 text-muted-foreground">
+                  For detailed calendar view with filtering options, click "Open Full Calendar"
                 </p>
               </div>
             </CardContent>
