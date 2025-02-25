@@ -141,6 +141,11 @@ export const sidebarLinks = [
     icon: Package,
   },
   {
+    title: "Finances",
+    href: "/finances",
+    icon: DollarSign,
+  },
+  {
     title: "Reports",
     href: "/reports",
     icon: FileText,

@@ -821,15 +821,21 @@ export default function StaffPage() {
                   </TableCell>
                   <TableCell>
                     {staff.role === "Doctor" ? "248" : "-"}
-                    {staff.role === "Doctor" && <div className="text-xs text-gray-400">This month</div>}
+                    {staff.role === "Doctor" && (
+                      <div className="text-xs text-gray-400">This month</div>
+                    )}
                   </TableCell>
                   <TableCell>
                     {staff.role === "Doctor" ? "164" : "-"}
-                    {staff.role === "Doctor" && <div className="text-xs text-gray-400">This month</div>}
+                    {staff.role === "Doctor" && (
+                      <div className="text-xs text-gray-400">This month</div>
+                    )}
                   </TableCell>
                   <TableCell>
                     {staff.role === "Doctor" ? "$24,800" : "-"}
-                    {staff.role === "Doctor" && <div className="text-xs text-gray-400">This month</div>}
+                    {staff.role === "Doctor" && (
+                      <div className="text-xs text-gray-400">This month</div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
