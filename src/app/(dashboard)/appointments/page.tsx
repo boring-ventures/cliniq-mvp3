@@ -111,8 +111,12 @@ export default function AppointmentsPage() {
     // Search filter
     const matchesSearch =
       searchQuery === "" ||
-      appointment.patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      appointment.patient.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      appointment.doctor.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
       appointment.reason.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Status filter
@@ -122,7 +126,9 @@ export default function AppointmentsPage() {
     // Doctor filter
     const matchesDoctor =
       doctorFilter === "all" ||
-      appointment.doctor.name.toLowerCase().includes(doctorFilter.toLowerCase());
+      appointment.doctor.name
+        .toLowerCase()
+        .includes(doctorFilter.toLowerCase());
 
     return matchesSearch && matchesStatus && matchesDoctor;
   });
@@ -252,8 +258,8 @@ export default function AppointmentsPage() {
                             appointment.status === "confirmed"
                               ? "bg-green-100 text-green-800 hover:bg-green-100"
                               : appointment.status === "pending"
-                              ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                              : "bg-red-100 text-red-800 hover:bg-red-100"
+                                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                : "bg-red-100 text-red-800 hover:bg-red-100"
                           }
                         >
                           {appointment.status.charAt(0).toUpperCase() +
@@ -292,7 +298,8 @@ export default function AppointmentsPage() {
                   className="rounded-md border"
                 />
                 <p className="mt-4 text-muted-foreground">
-                  For detailed calendar view with filtering options, click "Open Full Calendar"
+                  For detailed calendar view with filtering options, click "Open
+                  Full Calendar"
                 </p>
               </div>
             </CardContent>
@@ -301,4 +308,4 @@ export default function AppointmentsPage() {
       </Tabs>
     </div>
   );
-} 
+}

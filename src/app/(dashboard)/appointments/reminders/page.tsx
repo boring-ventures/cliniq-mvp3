@@ -5,7 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Send, Clock, Calendar, RefreshCw, Plus, Search } from "lucide-react";
+import {
+  Bell,
+  Send,
+  Clock,
+  Calendar,
+  RefreshCw,
+  Plus,
+  Search,
+  Pencil,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -49,21 +58,25 @@ export default function RemindersPage() {
   const [open, setOpen] = useState(false);
   const [reminderType, setReminderType] = useState("appointment");
   const [followupSchedule, setFollowupSchedule] = useState([
-    { id: 1, date: undefined, time: "", message: "" }
+    { id: 1, date: undefined, time: "", message: "" },
   ]);
   const [followupModalOpen, setFollowupModalOpen] = useState(false);
   const [tempFollowupSchedule, setTempFollowupSchedule] = useState([
-    { id: 1, date: undefined, time: "", message: "" }
+    { id: 1, date: undefined, time: "", message: "" },
   ]);
   const [patientSearch, setPatientSearch] = useState("");
   const [showPatientResults, setShowPatientResults] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<{id: string, name: string, phone: string} | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<{
+    id: string;
+    name: string;
+    phone: string;
+  } | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [sentReminderInfo, setSentReminderInfo] = useState<{
     patient: string;
     phone: string;
   } | null>(null);
-  
+
   // Mock reminder data
   const pendingReminders = [
     {
@@ -82,7 +95,7 @@ export default function RemindersPage() {
       phone: "+1 (555) 987-6543",
       appointmentDate: "Feb 27, 2023",
       appointmentTime: "11:45 AM",
-      reminderType: "24h Before",
+      reminderType: "Follow-up",
       status: "pending",
       scheduledFor: "Feb 26, 2023 11:45 AM",
     },
@@ -131,26 +144,29 @@ export default function RemindersPage() {
   ];
 
   const addScheduleItem = () => {
-    const newId = followupSchedule.length > 0 
-      ? Math.max(...followupSchedule.map(item => item.id)) + 1 
-      : 1;
-    
+    const newId =
+      followupSchedule.length > 0
+        ? Math.max(...followupSchedule.map((item) => item.id)) + 1
+        : 1;
+
     setFollowupSchedule([
-      ...followupSchedule, 
-      { id: newId, date: undefined, time: "", message: "" }
+      ...followupSchedule,
+      { id: newId, date: undefined, time: "", message: "" },
     ]);
   };
 
   const removeScheduleItem = (id: number) => {
     if (followupSchedule.length > 1) {
-      setFollowupSchedule(followupSchedule.filter(item => item.id !== id));
+      setFollowupSchedule(followupSchedule.filter((item) => item.id !== id));
     }
   };
 
   const updateScheduleItem = (id: number, field: string, value: any) => {
-    setFollowupSchedule(followupSchedule.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    ));
+    setFollowupSchedule(
+      followupSchedule.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    );
   };
 
   const handleReminderTypeChange = (value: string) => {
@@ -171,51 +187,61 @@ export default function RemindersPage() {
   };
 
   const addTempScheduleItem = () => {
-    const newId = tempFollowupSchedule.length > 0 
-      ? Math.max(...tempFollowupSchedule.map(item => item.id)) + 1 
-      : 1;
-    
+    const newId =
+      tempFollowupSchedule.length > 0
+        ? Math.max(...tempFollowupSchedule.map((item) => item.id)) + 1
+        : 1;
+
     setTempFollowupSchedule([
-      ...tempFollowupSchedule, 
-      { id: newId, date: undefined, time: "", message: "" }
+      ...tempFollowupSchedule,
+      { id: newId, date: undefined, time: "", message: "" },
     ]);
   };
 
   const removeTempScheduleItem = (id: number) => {
     if (tempFollowupSchedule.length > 1) {
-      setTempFollowupSchedule(tempFollowupSchedule.filter(item => item.id !== id));
+      setTempFollowupSchedule(
+        tempFollowupSchedule.filter((item) => item.id !== id)
+      );
     }
   };
 
   const updateTempScheduleItem = (id: number, field: string, value: any) => {
-    setTempFollowupSchedule(tempFollowupSchedule.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    ));
+    setTempFollowupSchedule(
+      tempFollowupSchedule.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    );
   };
 
-  const handlePatientSelect = (patient: {id: string, name: string, phone: string}) => {
+  const handlePatientSelect = (patient: {
+    id: string;
+    name: string;
+    phone: string;
+  }) => {
     setSelectedPatient(patient);
     setPatientSearch(`${patient.name} (${patient.phone})`);
     setShowPatientResults(false);
   };
 
-  const filteredPatients = patients.filter(patient => 
-    patient.name.toLowerCase().includes(patientSearch.toLowerCase()) || 
-    patient.phone.includes(patientSearch)
+  const filteredPatients = patients.filter(
+    (patient) =>
+      patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      patient.phone.includes(patientSearch)
   );
 
   // Add this useEffect to handle clicking outside the dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('#patient') && !target.closest('.patient-results')) {
+      if (!target.closest("#patient") && !target.closest(".patient-results")) {
         setShowPatientResults(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -228,19 +254,38 @@ export default function RemindersPage() {
   }) => {
     setSentReminderInfo({
       patient: reminder.patient,
-      phone: reminder.phone
+      phone: reminder.phone,
     });
     setShowSuccessModal(true);
-    
+
     // In a real application, you would also make an API call here
     // to actually send the message
+  };
+
+  // Add a function to handle editing follow-up reminders
+  const handleEditFollowUp = (reminder: any) => {
+    // Set up the temporary follow-up schedule based on the reminder's data
+    // This is a simplified example - in a real app, you'd fetch the actual follow-up schedule
+    setTempFollowupSchedule([
+      {
+        id: 1,
+        date: new Date(reminder.scheduledFor.split(" ")[0]),
+        time: reminder.scheduledFor.split(" ")[1],
+        message: "Follow-up reminder",
+      },
+    ]);
+
+    // Open the follow-up modal
+    setFollowupModalOpen(true);
   };
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Appointment Reminders</h1>
-        
+        <h1 className="text-3xl font-bold tracking-tight">
+          Appointment Reminders
+        </h1>
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -255,7 +300,7 @@ export default function RemindersPage() {
                 Set up a reminder for a patient's appointment or follow-up.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="patient" className="text-right">
@@ -278,7 +323,7 @@ export default function RemindersPage() {
                       className="pr-10"
                     />
                     <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    
+
                     {showPatientResults && patientSearch && (
                       <div className="absolute z-10 mt-1 w-full rounded-md bg-popover shadow-md">
                         <ul className="max-h-60 overflow-auto rounded-md py-1 text-base">
@@ -289,13 +334,18 @@ export default function RemindersPage() {
                                 className="relative cursor-pointer select-none py-2 px-3 hover:bg-accent"
                                 onClick={() => handlePatientSelect(patient)}
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter") handlePatientSelect(patient);
+                                  if (e.key === "Enter")
+                                    handlePatientSelect(patient);
                                 }}
                                 tabIndex={0}
                               >
                                 <div className="flex justify-between">
-                                  <span className="font-medium">{patient.name}</span>
-                                  <span className="text-muted-foreground">{patient.phone}</span>
+                                  <span className="font-medium">
+                                    {patient.name}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    {patient.phone}
+                                  </span>
                                 </div>
                               </li>
                             ))
@@ -310,13 +360,11 @@ export default function RemindersPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">
-                  Reminder Type
-                </Label>
-                <RadioGroup 
-                  defaultValue="appointment" 
+                <Label className="text-right">Reminder Type</Label>
+                <RadioGroup
+                  defaultValue="appointment"
                   value={reminderType}
                   onValueChange={handleReminderTypeChange}
                   className="col-span-3"
@@ -335,31 +383,38 @@ export default function RemindersPage() {
                   </div>
                 </RadioGroup>
               </div>
-              
+
               {reminderType === "followup" && (
                 <div className="col-span-4 mt-2">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium">Follow-up Schedule</h4>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={openFollowupModal}
                     >
                       Edit Schedule
                     </Button>
                   </div>
-                  
+
                   <div className="border rounded-md p-4 bg-muted/20">
                     {followupSchedule.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">No follow-up messages scheduled</p>
+                      <p className="text-muted-foreground text-sm">
+                        No follow-up messages scheduled
+                      </p>
                     ) : (
                       <div className="space-y-2">
                         {followupSchedule.map((item, index) => (
-                          <div key={item.id} className="flex items-center justify-between text-sm">
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between text-sm"
+                          >
                             <span>Message {index + 1}:</span>
                             <span>
-                              {item.date ? format(item.date, "MMM d, yyyy") : "Date not set"} 
+                              {item.date
+                                ? format(item.date, "MMM d, yyyy")
+                                : "Date not set"}
                               {item.time ? ` at ${item.time}` : ""}
                             </span>
                           </div>
@@ -369,7 +424,7 @@ export default function RemindersPage() {
                   </div>
                 </div>
               )}
-              
+
               {reminderType !== "followup" && (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -402,7 +457,7 @@ export default function RemindersPage() {
                       </Popover>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="time" className="text-right">
                       Send Time
@@ -434,7 +489,7 @@ export default function RemindersPage() {
                   </div>
                 </>
               )}
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="message" className="text-right">
                   Message
@@ -446,31 +501,39 @@ export default function RemindersPage() {
                   defaultValue="Hello [Patient], this is a reminder for your appointment on [Date] at [Time] with [Doctor]. Please reply YES to confirm or call us at (555) 123-4567 to reschedule."
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">
-                  Send via
-                </Label>
+                <Label className="text-right">Send via</Label>
                 <div className="col-span-3 flex items-center">
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    <svg viewBox="0 0 24 24" className="h-3 w-3 mr-1 fill-current" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  <Badge
+                    variant="outline"
+                    className="bg-green-50 text-green-700 border-green-200"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-3 w-3 mr-1 fill-current"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                     </svg>
                     WhatsApp
                   </Badge>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <div className="col-span-4 flex items-center justify-end space-x-2">
-                  <Label htmlFor="send-immediately" className="text-muted-foreground">
+                  <Label
+                    htmlFor="send-immediately"
+                    className="text-muted-foreground"
+                  >
                     Send immediately after creation
                   </Label>
                   <Switch id="send-immediately" />
                 </div>
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancel
@@ -499,9 +562,7 @@ export default function RemindersPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Sent Today
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Sent Today</CardTitle>
             <Send className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -521,9 +582,7 @@ export default function RemindersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">
-              In the next 7 days
-            </p>
+            <p className="text-xs text-muted-foreground">In the next 7 days</p>
           </CardContent>
         </Card>
       </div>
@@ -543,6 +602,7 @@ export default function RemindersPage() {
                     <TableHead>Patient</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Appointment</TableHead>
+                    <TableHead>Reminder Type</TableHead>
                     <TableHead>Scheduled For</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -551,26 +611,45 @@ export default function RemindersPage() {
                 <TableBody>
                   {pendingReminders.map((reminder) => (
                     <TableRow key={reminder.id}>
-                      <TableCell className="font-medium">{reminder.patient}</TableCell>
+                      <TableCell className="font-medium">
+                        {reminder.patient}
+                      </TableCell>
                       <TableCell>{reminder.phone}</TableCell>
                       <TableCell>
                         {reminder.appointmentDate} at {reminder.appointmentTime}
                       </TableCell>
+                      <TableCell>{reminder.reminderType}</TableCell>
                       <TableCell>{reminder.scheduledFor}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                        <Badge
+                          variant="outline"
+                          className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                        >
                           Pending
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleSendNow(reminder)}
-                        >
-                          <Send className="mr-2 h-4 w-4" />
-                          Send Now
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSendNow(reminder)}
+                          >
+                            <Send className="mr-2 h-4 w-4" />
+                            Send Now
+                          </Button>
+
+                          {reminder.reminderType === "Follow-up" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditFollowUp(reminder)}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -596,14 +675,19 @@ export default function RemindersPage() {
                 <TableBody>
                   {sentReminders.map((reminder) => (
                     <TableRow key={reminder.id}>
-                      <TableCell className="font-medium">{reminder.patient}</TableCell>
+                      <TableCell className="font-medium">
+                        {reminder.patient}
+                      </TableCell>
                       <TableCell>{reminder.phone}</TableCell>
                       <TableCell>
                         {reminder.appointmentDate} at {reminder.appointmentTime}
                       </TableCell>
                       <TableCell>{reminder.sentAt}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        <Badge
+                          variant="outline"
+                          className="bg-green-50 text-green-700 border-green-200"
+                        >
                           Sent
                         </Badge>
                       </TableCell>
@@ -618,9 +702,7 @@ export default function RemindersPage() {
 
       <Dialog open={followupModalOpen} onOpenChange={setFollowupModalOpen}>
         <DialogTrigger asChild>
-          <Button>
-            Edit Follow-up Schedule
-          </Button>
+          <Button>Edit Follow-up Schedule</Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -629,7 +711,7 @@ export default function RemindersPage() {
               Add or remove follow-up messages for this reminder.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="followupSchedule" className="text-right">
@@ -638,35 +720,43 @@ export default function RemindersPage() {
               <div className="col-span-3">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-medium">Messages</h4>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={addTempScheduleItem}
                   >
                     Add Message
                   </Button>
                 </div>
-                
+
                 <div className="space-y-4 border rounded-md p-4">
                   {tempFollowupSchedule.map((item, index) => (
-                    <div key={item.id} className="grid grid-cols-12 gap-4 items-start pb-4 border-b last:border-0 last:pb-0">
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-12 gap-4 items-start pb-4 border-b last:border-0 last:pb-0"
+                    >
                       <div className="col-span-12 flex items-center justify-between">
-                        <h5 className="font-medium text-sm">Message {index + 1}</h5>
+                        <h5 className="font-medium text-sm">
+                          Message {index + 1}
+                        </h5>
                         {tempFollowupSchedule.length > 1 && (
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => removeTempScheduleItem(item.id)}
                           >
                             Remove
                           </Button>
                         )}
                       </div>
-                      
+
                       <div className="col-span-6">
-                        <Label htmlFor={`date-${item.id}`} className="mb-2 block">
+                        <Label
+                          htmlFor={`date-${item.id}`}
+                          className="mb-2 block"
+                        >
                           Date
                         </Label>
                         <Popover>
@@ -680,27 +770,36 @@ export default function RemindersPage() {
                               )}
                             >
                               <Calendar className="mr-2 h-4 w-4" />
-                              {item.date ? format(item.date, "PPP") : "Select date"}
+                              {item.date
+                                ? format(item.date, "PPP")
+                                : "Select date"}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
                             <CalendarComponent
                               mode="single"
                               selected={item.date}
-                              onSelect={(date) => updateTempScheduleItem(item.id, "date", date)}
+                              onSelect={(date) =>
+                                updateTempScheduleItem(item.id, "date", date)
+                              }
                               initialFocus
                             />
                           </PopoverContent>
                         </Popover>
                       </div>
-                      
+
                       <div className="col-span-6">
-                        <Label htmlFor={`time-${item.id}`} className="mb-2 block">
+                        <Label
+                          htmlFor={`time-${item.id}`}
+                          className="mb-2 block"
+                        >
                           Time
                         </Label>
-                        <Select 
-                          value={item.time} 
-                          onValueChange={(value) => updateTempScheduleItem(item.id, "time", value)}
+                        <Select
+                          value={item.time}
+                          onValueChange={(value) =>
+                            updateTempScheduleItem(item.id, "time", value)
+                          }
                         >
                           <SelectTrigger id={`time-${item.id}`}>
                             <SelectValue placeholder="Select time" />
@@ -726,16 +825,25 @@ export default function RemindersPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="col-span-12">
-                        <Label htmlFor={`message-${item.id}`} className="mb-2 block">
+                        <Label
+                          htmlFor={`message-${item.id}`}
+                          className="mb-2 block"
+                        >
                           Message
                         </Label>
                         <Textarea
                           id={`message-${item.id}`}
                           placeholder="Enter message for this follow-up"
                           value={item.message}
-                          onChange={(e) => updateTempScheduleItem(item.id, "message", e.target.value)}
+                          onChange={(e) =>
+                            updateTempScheduleItem(
+                              item.id,
+                              "message",
+                              e.target.value
+                            )
+                          }
                           className="min-h-[100px]"
                         />
                       </div>
@@ -745,14 +853,15 @@ export default function RemindersPage() {
               </div>
             </div>
           </div>
-          
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFollowupModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setFollowupModalOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={saveFollowupSchedule}>
-              Save Changes
-            </Button>
+            <Button onClick={saveFollowupSchedule}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -765,7 +874,7 @@ export default function RemindersPage() {
               The reminder has been sent to the patient.
             </DialogDescription>
           </DialogHeader>
-          
+
           {sentReminderInfo && (
             <div className="py-4">
               <div className="space-y-4">
@@ -780,26 +889,29 @@ export default function RemindersPage() {
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right font-medium">Status:</Label>
                   <div className="col-span-3">
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700 border-green-200"
+                    >
                       Sent
                     </Badge>
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right font-medium">Sent at:</Label>
-                  <div className="col-span-3">{new Date().toLocaleString()}</div>
+                  <div className="col-span-3">
+                    {new Date().toLocaleString()}
+                  </div>
                 </div>
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
-            <Button onClick={() => setShowSuccessModal(false)}>
-              Close
-            </Button>
+            <Button onClick={() => setShowSuccessModal(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
-} 
+}
