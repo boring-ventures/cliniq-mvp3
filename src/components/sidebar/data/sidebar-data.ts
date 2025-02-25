@@ -9,6 +9,8 @@ import {
   User,
   Settings,
   Bell,
+  FileText,
+  Stethoscope,
 } from "lucide-react";
 import type { SidebarData } from "../types";
 
@@ -81,7 +83,7 @@ export const sidebarData: SidebarData = {
         {
           title: "Staff",
           url: "/staff",
-          icon: UserCog,
+          icon: Stethoscope,
         },
       ],
     },
@@ -129,9 +131,19 @@ export const sidebarLinks = [
     icon: User,
   },
   {
+    title: "Staff",
+    href: "/staff",
+    icon: Stethoscope,
+  },
+  {
     title: "Inventory",
     href: "/inventory",
     icon: Package,
+  },
+  {
+    title: "Reports",
+    href: "/reports",
+    icon: FileText,
   },
   {
     title: "Settings",
