@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { LogOut, Settings, User } from "lucide-react";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +42,7 @@ export function ProfileDropdown() {
     } else if (profile.lastName) {
       return profile.lastName;
     } else {
-      return user.email?.split('@')[0] || "User";
+      return user.email?.split("@")[0] || "User";
     }
   };
 
@@ -65,13 +61,15 @@ export function ProfileDropdown() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{getDisplayName()}</p>
+            <p className="text-sm font-medium leading-none">
+              {getDisplayName()}
+            </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
             {profile.role && (
               <p className="text-xs leading-none text-muted-foreground mt-1">
-                Role: {profile.role.replace('_', ' ')}
+                Role: {profile.role.replace("_", " ")}
               </p>
             )}
           </div>

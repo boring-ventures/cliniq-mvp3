@@ -1,72 +1,80 @@
 import {
   LayoutDashboard,
-  Settings,
+  Calendar,
+  Users,
+  Package,
   UserCog,
-  Wrench,
-  Palette,
-  BellRing,
-  Monitor,
-  Command,
+  DollarSign,
+  Building,
 } from "lucide-react";
 import type { SidebarData } from "../types";
 
 export const sidebarData: SidebarData = {
-  user: {
-    name: "satnaing",
-    email: "satnaingdev@gmail.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   teams: [
     {
-      name: "Shadcn Admin",
-      logo: Command,
-      plan: "Vite + ShadcnUI",
+      name: "Clinic",
+      logo: Building,
+      plan: "Healthcare",
     },
   ],
   navGroups: [
     {
-      title: "General",
+      title: "Dashboard & Navigation",
       items: [
         {
           title: "Dashboard",
-          url: "/",
+          url: "/dashboard",
           icon: LayoutDashboard,
         },
       ],
     },
     {
-      title: "Other",
+      title: "Appointment Management",
       items: [
         {
-          title: "Settings",
-          icon: Settings,
-          items: [
-            {
-              title: "Profile",
-              url: "/settings",
-              icon: UserCog,
-            },
-            {
-              title: "Account",
-              url: "/settings/account",
-              icon: Wrench,
-            },
-            {
-              title: "Appearance",
-              url: "/settings/appearance",
-              icon: Palette,
-            },
-            {
-              title: "Notifications",
-              url: "/settings/notifications",
-              icon: BellRing,
-            },
-            {
-              title: "Display",
-              url: "/settings/display",
-              icon: Monitor,
-            },
-          ],
+          title: "Appointments",
+          url: "/appointments",
+          icon: Calendar,
+        },
+      ],
+    },
+    {
+      title: "Patient Management & EMR",
+      items: [
+        {
+          title: "Patients",
+          url: "/patients",
+          icon: Users,
+        },
+      ],
+    },
+    {
+      title: "Inventory Management",
+      items: [
+        {
+          title: "Inventory",
+          url: "/inventory",
+          icon: Package,
+        },
+      ],
+    },
+    {
+      title: "Doctor & Staff Management",
+      items: [
+        {
+          title: "Staff",
+          url: "/staff",
+          icon: UserCog,
+        },
+      ],
+    },
+    {
+      title: "Sales & Financial Management",
+      items: [
+        {
+          title: "Finances",
+          url: "/finances",
+          icon: DollarSign,
         },
       ],
     },
