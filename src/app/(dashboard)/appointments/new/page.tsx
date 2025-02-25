@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,16 +19,62 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Clock } from "lucide-react";
+import { CalendarIcon, Clock, Search } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export default function NewAppointmentPage() {
   const [date, setDate] = useState<Date>();
-  
+  const [patientSearch, setPatientSearch] = useState("");
+  const [showPatientResults, setShowPatientResults] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<{id: string, name: string, phone: string} | null>(null);
+
+  // Mock patient data
+  const patients = [
+    { id: "1", name: "John Smith", phone: "+1 (555) 123-4567" },
+    { id: "2", name: "Sarah Thompson", phone: "+1 (555) 234-5678" },
+    { id: "3", name: "Michael Rodriguez", phone: "+1 (555) 456-7890" },
+    { id: "4", name: "Emma Davis", phone: "+1 (555) 987-6543" },
+    { id: "5", name: "Lisa Anderson", phone: "+1 (555) 876-5432" },
+  ];
+
+  // Mock doctor data
+  const doctors = [
+    { id: "1", name: "Dr. Wilson", specialty: "General Dentist" },
+    { id: "2", name: "Dr. Chen", specialty: "Orthodontist" },
+    { id: "3", name: "Dr. Patel", specialty: "Periodontist" },
+    { id: "4", name: "Dr. Johnson", specialty: "Oral Surgeon" },
+  ];
+
+  const handlePatientSelect = (patient: {id: string, name: string, phone: string}) => {
+    setSelectedPatient(patient);
+    setPatientSearch(`${patient.name} (${patient.phone})`);
+    setShowPatientResults(false);
+  };
+
+  const filteredPatients = patients.filter(patient => 
+    patient.name.toLowerCase().includes(patientSearch.toLowerCase()) || 
+    patient.phone.includes(patientSearch)
+  );
+
+  // Handle clicking outside the dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('#patient') && !target.closest('.patient-results')) {
+        setShowPatientResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-3xl font-bold tracking-tight">New Appointment</h1>
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-6">New Appointment</h1>
       
       <Card>
         <CardHeader>
@@ -39,18 +85,52 @@ export default function NewAppointmentPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="patient">Patient</Label>
-                <Select>
-                  <SelectTrigger id="patient">
-                    <SelectValue placeholder="Select patient" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sarah">Sarah Thompson</SelectItem>
-                    <SelectItem value="michael">Michael Rodriguez</SelectItem>
-                    <SelectItem value="emma">Emma Davis</SelectItem>
-                    <SelectItem value="john">John Smith</SelectItem>
-                    <SelectItem value="lisa">Lisa Anderson</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Input
+                    id="patient"
+                    placeholder="Search patient by name or phone"
+                    value={patientSearch}
+                    onChange={(e) => {
+                      setPatientSearch(e.target.value);
+                      setShowPatientResults(true);
+                      if (e.target.value === "") {
+                        setSelectedPatient(null);
+                      }
+                    }}
+                    onFocus={() => setShowPatientResults(true)}
+                    className="pr-10"
+                  />
+                  <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  
+                  {showPatientResults && patientSearch && (
+                    <div className="absolute z-10 mt-1 w-full rounded-md bg-popover shadow-md">
+                      <ul className="max-h-60 overflow-auto rounded-md py-1 text-base">
+                        {filteredPatients.length > 0 ? (
+                          filteredPatients.map((patient) => (
+                            <li
+                              key={patient.id}
+                              className="relative cursor-pointer select-none py-2 px-3 hover:bg-accent"
+                              onClick={() => handlePatientSelect(patient)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handlePatientSelect(patient);
+                              }}
+                              tabIndex={0}
+                            >
+                              <div className="flex justify-between">
+                                <span className="font-medium">{patient.name}</span>
+                                <span className="text-muted-foreground">{patient.phone}</span>
+                              </div>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="relative cursor-default select-none py-2 px-3 text-muted-foreground">
+                            No patients found
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -60,18 +140,23 @@ export default function NewAppointmentPage() {
                     <SelectValue placeholder="Select doctor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="wilson">Dr. Wilson (Dentist)</SelectItem>
-                    <SelectItem value="chen">Dr. Chen (Orthodontist)</SelectItem>
-                    <SelectItem value="brown">Dr. Brown (Periodontist)</SelectItem>
+                    {doctors.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id}>
+                        {doctor.name} ({doctor.specialty})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      id="date"
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
@@ -108,18 +193,21 @@ export default function NewAppointmentPage() {
                     <SelectItem value="11:30">11:30 AM</SelectItem>
                     <SelectItem value="12:00">12:00 PM</SelectItem>
                     <SelectItem value="12:30">12:30 PM</SelectItem>
-                    <SelectItem value="1:00">01:00 PM</SelectItem>
-                    <SelectItem value="1:30">01:30 PM</SelectItem>
-                    <SelectItem value="2:00">02:00 PM</SelectItem>
-                    <SelectItem value="2:30">02:30 PM</SelectItem>
-                    <SelectItem value="3:00">03:00 PM</SelectItem>
-                    <SelectItem value="3:30">03:30 PM</SelectItem>
-                    <SelectItem value="4:00">04:00 PM</SelectItem>
-                    <SelectItem value="4:30">04:30 PM</SelectItem>
+                    <SelectItem value="13:00">01:00 PM</SelectItem>
+                    <SelectItem value="13:30">01:30 PM</SelectItem>
+                    <SelectItem value="14:00">02:00 PM</SelectItem>
+                    <SelectItem value="14:30">02:30 PM</SelectItem>
+                    <SelectItem value="15:00">03:00 PM</SelectItem>
+                    <SelectItem value="15:30">03:30 PM</SelectItem>
+                    <SelectItem value="16:00">04:00 PM</SelectItem>
+                    <SelectItem value="16:30">04:30 PM</SelectItem>
+                    <SelectItem value="17:00">05:00 PM</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="duration">Duration</Label>
                 <Select defaultValue="30">
@@ -157,15 +245,6 @@ export default function NewAppointmentPage() {
               <Textarea
                 id="reason"
                 placeholder="Enter the reason for the appointment"
-                className="min-h-[100px]"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="notes">Additional Notes</Label>
-              <Textarea
-                id="notes"
-                placeholder="Any additional information or special requirements"
                 className="min-h-[100px]"
               />
             </div>
