@@ -477,9 +477,13 @@ export default function PatientsPage() {
               {patients
                 .filter(
                   (patient) =>
-                    patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    patient.name
+                      .toLowerCase()
+                      .includes(searchQuery.toLowerCase()) ||
                     patient.phone.includes(searchQuery) ||
-                    patient.email.toLowerCase().includes(searchQuery.toLowerCase())
+                    patient.email
+                      .toLowerCase()
+                      .includes(searchQuery.toLowerCase())
                 )
                 .map((patient) => (
                   <TableRow key={patient.id}>
@@ -496,8 +500,12 @@ export default function PatientsPage() {
                       </div>
                     </TableCell>
                     <TableCell>{patient.phone}</TableCell>
-                    <TableCell>{new Date(patient.lastVisit).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(patient.nextAppointment).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {new Date(patient.lastVisit).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(patient.nextAppointment).toLocaleDateString()}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"

@@ -6,6 +6,9 @@ import {
   UserCog,
   DollarSign,
   Building,
+  User,
+  Settings,
+  Bell,
 } from "lucide-react";
 import type { SidebarData } from "../types";
 
@@ -94,3 +97,50 @@ export const sidebarData: SidebarData = {
     },
   ],
 };
+
+export const sidebarLinks = [
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Appointments",
+    href: "/appointments",
+    icon: Calendar,
+    submenu: [
+      {
+        title: "All Appointments",
+        href: "/appointments",
+      },
+      {
+        title: "New Appointment",
+        href: "/appointments/new",
+      },
+      {
+        title: "Reminders",
+        href: "/appointments/reminders",
+      },
+    ],
+  },
+  {
+    title: "Patients",
+    href: "/patients",
+    icon: User,
+  },
+  {
+    title: "Inventory",
+    href: "/inventory",
+    icon: Package,
+  },
+  {
+    title: "Settings",
+    href: "/settings",
+    icon: Settings,
+  },
+  {
+    title: "Notifications",
+    href: "/notifications",
+    icon: Bell,
+  },
+];
