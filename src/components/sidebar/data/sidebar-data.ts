@@ -35,6 +35,20 @@ export const sidebarData: SidebarData = {
           title: "Appointments",
           url: "/appointments",
           icon: Calendar,
+          items: [
+            {
+              title: "Calendar View",
+              url: "/appointments/calendar",
+            },
+            {
+              title: "New Appointment",
+              url: "/appointments/new",
+            },
+            {
+              title: "Reminders",
+              url: "/appointments/reminders",
+            },
+          ],
         },
       ],
     },
