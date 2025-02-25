@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Filter, Plus, Search } from "lucide-react";
+import { Clock, Filter, Plus, Search } from "lucide-react";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -244,7 +246,7 @@ export default function AppointmentsPage() {
 
                         <div className="text-right">
                           <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                             <span>{appointment.date}</span>
                           </div>
                           <div className="flex items-center gap-1">
@@ -298,7 +300,8 @@ export default function AppointmentsPage() {
                   className="rounded-md border"
                 />
                 <p className="mt-4 text-muted-foreground">
-                  For detailed calendar view with filtering options, click &quot;Open Full Calendar&quot;
+                  For detailed calendar view with filtering options, click
+                  &quot;Open Full Calendar&quot;
                 </p>
               </div>
             </CardContent>

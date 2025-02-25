@@ -30,10 +30,21 @@ import { cn } from "@/lib/utils";
 import { profileFormSchema } from "@/lib/validations/profile";
 import type { ProfileFormValues } from "@/lib/validations/profile";
 
+interface Profile {
+  userId?: string;
+  username?: string;
+  fullName?: string;
+  bio?: string;
+  birthDate?: string;
+  role?: "USER" | "ADMIN";
+  avatarUrl?: string;
+}
+
 export function ProfileForm() {
-  const { profile  } = useAuth();
+  const { profile } = useAuth() as { profile: Profile };
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingChanges, setPendingChanges] = useState<ProfileFormValues | null>(null);
+  const [pendingChanges, setPendingChanges] =
+    useState<ProfileFormValues | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<ProfileFormValues>({
@@ -64,14 +75,14 @@ export function ProfileForm() {
       if (pendingChanges.avatarUrl?.[0]) {
         const formData = new FormData();
         formData.append("file", pendingChanges.avatarUrl[0]);
-        
+
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
           body: formData,
         });
 
         if (!uploadResponse.ok) throw new Error("Failed to upload avatar");
-        
+
         const { url } = await uploadResponse.json();
         avatarUrl = url;
       }
@@ -148,7 +159,8 @@ export function ProfileForm() {
                   <Input placeholder="johndoe" {...field} />
                 </FormControl>
                 <FormDescription>
-                  This is your public display name. It can be your real name or a pseudonym.
+                  This is your public display name. It can be your real name or
+                  a pseudonym.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -197,7 +209,7 @@ export function ProfileForm() {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={field.value}
+                      selected={field.value as Date}
                       onSelect={field.onChange}
                       disabled={(date) =>
                         date > new Date() || date < new Date("1900-01-01")
@@ -222,6 +234,7 @@ export function ProfileForm() {
                     placeholder="Tell us a little bit about yourself"
                     className="resize-none"
                     {...field}
+                    value={field.value || ""}
                   />
                 </FormControl>
                 <FormDescription>
@@ -234,14 +247,12 @@ export function ProfileForm() {
 
           <div className="flex items-center gap-4">
             <Button type="submit" disabled={isUploading}>
-              {isUploading && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Update profile
             </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => form.reset()}
               disabled={isUploading}
             >
@@ -260,4 +271,4 @@ export function ProfileForm() {
       />
     </>
   );
-} 
+}

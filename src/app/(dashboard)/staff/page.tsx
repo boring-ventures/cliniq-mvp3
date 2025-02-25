@@ -46,9 +46,66 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getRoleBadgeClass } from "@/utils/role-utils";
+import { useState } from "react";
+
+// Add these type definitions at the top of your file
+interface StaffMember {
+  id: string;
+  name: string;
+  role: string;
+  specialty?: string;
+  phone: string;
+  email: string;
+  status: string;
+  avatar: string;
+  initials: string;
+  dateOfBirth: string;
+  joinDate: string;
+  workingHours: {
+    [key: string]: { start: string; end: string };
+  };
+  address: string;
+  emergencyContact: {
+    name: string;
+    relationship: string;
+    phone: string;
+  };
+  qualifications: Array<{
+    id: string;
+    degree: string;
+    institution: string;
+    year: string;
+  }>;
+  appointments: Array<{
+    id: string;
+    date: string;
+    time: string;
+    status: string;
+    patientName: string;
+    reason: string;
+  }>;
+  payroll: {
+    salary: number;
+    paymentFrequency: string;
+    lastPayment: string;
+    bankDetails: {
+      accountName: string;
+      accountNumber: string;
+      bankName: string;
+    };
+  };
+  notes: string;
+  documents: Array<{
+    id: string;
+    name: string;
+    uploadDate: string;
+    size: string;
+  }>;
+}
 
 // Mock staff data
-const staffMembers = [
+const staffMembersData: StaffMember[] = [
   {
     id: "1",
     name: "Dr. Sarah Wilson",
@@ -97,6 +154,7 @@ const staffMembers = [
         date: "2024-03-15",
         time: "10:00",
         status: "Scheduled",
+        reason: "",
       },
       {
         id: "a2",
@@ -104,6 +162,7 @@ const staffMembers = [
         date: "2024-03-15",
         time: "11:30",
         status: "Scheduled",
+        reason: "",
       },
       {
         id: "a3",
@@ -111,6 +170,7 @@ const staffMembers = [
         date: "2024-03-16",
         time: "14:00",
         status: "Scheduled",
+        reason: "",
       },
     ],
     payroll: {
@@ -277,15 +337,15 @@ const staffMembers = [
 
 export default function StaffPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [editedStaff, setEditedStaff] = useState(null);
+  const [editedStaff, setEditedStaff] = useState<StaffMember | null>(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [staffNotes, setStaffNotes] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [newStaffModalOpen, setNewStaffModalOpen] = useState(false);
-  const [newStaff, setNewStaff] = useState({
+  const [newStaff, setNewStaff] = useState<StaffMember>({
     id: "",
     name: "",
     role: "Doctor",
@@ -327,10 +387,12 @@ export default function StaffPage() {
     notes: "",
     documents: [],
   });
+  const [staffMembers, setStaffMembers] =
+    useState<StaffMember[]>(staffMembersData);
 
-  const handleViewStaff = (staff) => {
+  const handleViewStaff = (staff: StaffMember) => {
     setSelectedStaff(staff);
-    setEditedStaff(JSON.parse(JSON.stringify(staff))); // Create a deep copy
+    setEditedStaff(JSON.parse(JSON.stringify(staff)));
     setStaffNotes(staff.notes || "");
     setProfileOpen(true);
     setEditMode(false);
@@ -355,7 +417,7 @@ export default function StaffPage() {
 
     // Update the staff in the staffMembers array
     const updatedStaff = staffMembers.map((s) =>
-      s.id === editedStaff.id ? editedStaff : s
+      s.id === editedStaff?.id ? editedStaff : s
     );
 
     // Use the updatedStaff variable
@@ -366,8 +428,13 @@ export default function StaffPage() {
     setEditMode(false);
   };
 
-  const handleInputChange = (e, section = "basic") => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    section = "basic"
+  ) => {
     const { name, value } = e.target;
+
+    if (!editedStaff) return; // Add this null check
 
     if (section === "basic") {
       setEditedStaff({
@@ -404,7 +471,12 @@ export default function StaffPage() {
     }
   };
 
-  const handleWorkingHoursChange = (day, field, value) => {
+  const handleWorkingHoursChange = (
+    day: string,
+    field: string,
+    value: string
+  ) => {
+    if (!editedStaff) return;
     const updatedHours = { ...editedStaff.workingHours };
     updatedHours[day] = {
       ...updatedHours[day],
@@ -417,7 +489,8 @@ export default function StaffPage() {
     });
   };
 
-  const toggleWorkDay = (day) => {
+  const toggleWorkDay = (day: string) => {
+    if (!editedStaff) return;
     const updatedHours = { ...editedStaff.workingHours };
 
     if (updatedHours[day].start && updatedHours[day].end) {
@@ -440,12 +513,14 @@ export default function StaffPage() {
 
   const handleCancelNotes = () => {
     setEditingNotes(false);
-    setStaffNotes(selectedStaff.notes || "");
+    if (selectedStaff) {
+      setStaffNotes(selectedStaff.notes || "");
+    }
   };
 
   const handleSaveNotes = () => {
-    // In a real app, you would save changes to the backend here
-    // For this demo, we'll just update the local state
+    if (!selectedStaff) return;
+
     const updatedStaff = { ...selectedStaff, notes: staffNotes };
     setSelectedStaff(updatedStaff);
 
@@ -474,7 +549,7 @@ export default function StaffPage() {
     return matchesSearch && matchesRole;
   });
 
-  const getRoleIcon = (role) => {
+  const getRoleIcon = (role: string) => {
     switch (role) {
       case "Doctor":
         return <Stethoscope className="mr-1 h-3 w-3" />;
@@ -489,22 +564,11 @@ export default function StaffPage() {
     }
   };
 
-  const getRoleBadgeClass = (role) => {
-    switch (role) {
-      case "Doctor":
-        return "bg-blue-500 text-white";
-      case "Receptionist":
-        return "bg-green-500 text-white";
-      case "Dental Assistant":
-        return "bg-purple-500 text-white";
-      case "Office Manager":
-        return "bg-yellow-500 text-black";
-      default:
-        return "bg-gray-500 text-white";
-    }
-  };
-
-  const handleNewStaffInputChange = (e, section = null, subsection = null) => {
+  const handleNewStaffInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    section: string | null = null,
+    subsection: string | null = null
+  ) => {
     const { name, value } = e.target;
 
     if (section === "emergency") {
@@ -556,7 +620,11 @@ export default function StaffPage() {
     }
   };
 
-  const handleNewStaffWorkingHoursChange = (day, field, value) => {
+  const handleNewStaffWorkingHoursChange = (
+    day: string,
+    field: string,
+    value: string
+  ) => {
     const updatedHours = { ...newStaff.workingHours };
     updatedHours[day] = {
       ...updatedHours[day],
@@ -569,7 +637,7 @@ export default function StaffPage() {
     });
   };
 
-  const toggleNewStaffWorkDay = (day) => {
+  const toggleNewStaffWorkDay = (day: string) => {
     const updatedHours = { ...newStaff.workingHours };
 
     if (updatedHours[day].start && updatedHours[day].end) {
@@ -647,26 +715,63 @@ export default function StaffPage() {
     setSearchQuery("");
   };
 
-  const handleAvatarUpload = (file) => {
+  const handleAvatarUpload = (file: File) => {
+    if (!editedStaff) return;
+
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setEditedStaff({
-        ...editedStaff,
-        avatar: e.target.result,
-      });
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      if (e.target && e.target.result && editedStaff) {
+        setEditedStaff({
+          ...editedStaff,
+          avatar: e.target.result as string,
+        });
+      }
     };
     reader.readAsDataURL(file);
   };
 
-  const handleNewStaffAvatarUpload = (file) => {
+  const handleNewStaffAvatarUpload = (file: File) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setNewStaff({
-        ...newStaff,
-        avatar: e.target.result,
-      });
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      if (e.target && e.target.result) {
+        setNewStaff({
+          ...newStaff,
+          avatar: e.target.result as string,
+        });
+      }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleBrowseClick = () => {
+    // Create a hidden file input and trigger it
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".pdf,.doc,.docx,.jpg,.png";
+    fileInput.onchange = (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files && target.files[0]) {
+        // Handle the selected file
+        // In a real app, you would upload this to your backend
+        console.log("Selected file:", target.files[0]);
+
+        // For demo purposes, you could add it to the documents array
+        if (selectedStaff && editedStaff) {
+          const newDoc = {
+            id: `d${editedStaff.documents.length + 1}`,
+            name: target.files[0].name,
+            uploadDate: new Date().toISOString().split("T")[0],
+            size: `${(target.files[0].size / 1024).toFixed(1)} KB`,
+          };
+
+          setEditedStaff({
+            ...editedStaff,
+            documents: [...editedStaff.documents, newDoc],
+          });
+        }
+      }
+    };
+    fileInput.click();
   };
 
   return (
@@ -889,7 +994,9 @@ export default function StaffPage() {
                       <Avatar className="h-24 w-24">
                         <AvatarImage
                           src={
-                            editMode ? editedStaff.avatar : selectedStaff.avatar
+                            editMode && editedStaff
+                              ? editedStaff.avatar
+                              : selectedStaff.avatar
                           }
                           alt={selectedStaff.name}
                         />
@@ -930,24 +1037,20 @@ export default function StaffPage() {
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Full Name
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="name"
                           value={editedStaff.name}
                           onChange={(e) => handleInputChange(e)}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.name}
-                        </div>
                       )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Role
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Select
                           name="role"
                           value={editedStaff.role}
@@ -971,10 +1074,6 @@ export default function StaffPage() {
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.role}
-                        </div>
                       )}
                     </div>
                     {selectedStaff.role === "Doctor" && (
@@ -982,17 +1081,13 @@ export default function StaffPage() {
                         <Label className="text-sm font-medium text-gray-400 mb-1">
                           Specialty
                         </Label>
-                        {editMode ? (
+                        {editMode && editedStaff && (
                           <Input
                             name="specialty"
                             value={editedStaff.specialty}
                             onChange={(e) => handleInputChange(e)}
                             className="mt-1"
                           />
-                        ) : (
-                          <div className="border rounded-md p-2">
-                            {selectedStaff.specialty || "Not specified"}
-                          </div>
                         )}
                       </div>
                     )}
@@ -1000,7 +1095,7 @@ export default function StaffPage() {
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Date of Birth
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="dateOfBirth"
                           type="date"
@@ -1008,20 +1103,13 @@ export default function StaffPage() {
                           onChange={(e) => handleInputChange(e)}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {format(
-                            new Date(selectedStaff.dateOfBirth),
-                            "MM/dd/yyyy"
-                          )}
-                        </div>
                       )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Join Date
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="joinDate"
                           type="date"
@@ -1029,37 +1117,26 @@ export default function StaffPage() {
                           onChange={(e) => handleInputChange(e)}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {format(
-                            new Date(selectedStaff.joinDate),
-                            "MM/dd/yyyy"
-                          )}
-                        </div>
                       )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Phone
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="phone"
                           value={editedStaff.phone}
                           onChange={(e) => handleInputChange(e)}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.phone}
-                        </div>
                       )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Email
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="email"
                           type="email"
@@ -1067,27 +1144,19 @@ export default function StaffPage() {
                           onChange={(e) => handleInputChange(e)}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.email}
-                        </div>
                       )}
                     </div>
                     <div className="col-span-2">
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Address
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="address"
                           value={editedStaff.address}
                           onChange={(e) => handleInputChange(e)}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.address}
-                        </div>
                       )}
                     </div>
                   </div>
@@ -1100,51 +1169,39 @@ export default function StaffPage() {
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Contact Name
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="name"
                           value={editedStaff.emergencyContact.name}
                           onChange={(e) => handleInputChange(e, "emergency")}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.emergencyContact.name}
-                        </div>
                       )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Relationship
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="relationship"
                           value={editedStaff.emergencyContact.relationship}
                           onChange={(e) => handleInputChange(e, "emergency")}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.emergencyContact.relationship}
-                        </div>
                       )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Phone
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="phone"
                           value={editedStaff.emergencyContact.phone}
                           onChange={(e) => handleInputChange(e, "emergency")}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.emergencyContact.phone}
-                        </div>
                       )}
                     </div>
                   </div>
@@ -1247,11 +1304,13 @@ export default function StaffPage() {
                           size="sm"
                           onClick={() => {
                             // Reset working hours to original state
-                            setEditedStaff({
-                              ...editedStaff,
-                              workingHours: selectedStaff.workingHours,
-                            });
-                            handleEditToggle();
+                            if (editedStaff && selectedStaff) {
+                              setEditedStaff({
+                                ...editedStaff,
+                                workingHours: selectedStaff.workingHours,
+                              });
+                              handleEditToggle();
+                            }
                           }}
                         >
                           <X className="mr-2 h-4 w-4" />
@@ -1275,98 +1334,182 @@ export default function StaffPage() {
                   </div>
 
                   <div className="space-y-6">
-                    {Object.entries(
-                      editMode
-                        ? editedStaff.workingHours
-                        : selectedStaff.workingHours
-                    ).map(([day, hours]) => (
-                      <div key={day} className="flex items-center gap-4">
-                        <div className="w-28 font-medium capitalize text-white">
-                          {day}
-                        </div>
-                        <div className="flex items-center">
-                          <button
-                            type="button"
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-                              editMode
-                                ? "cursor-pointer bg-gray-700"
-                                : "cursor-not-allowed bg-gray-800"
-                            }`}
-                            onClick={() => editMode && toggleWorkDay(day)}
-                            disabled={!editMode}
-                            aria-pressed={hours.start && hours.end}
-                          >
-                            <span
-                              className={`${
-                                hours.start && hours.end
-                                  ? "bg-white translate-x-6"
-                                  : "bg-gray-400 translate-x-1"
-                              } inline-block h-4 w-4 transform rounded-full transition-transform`}
-                            />
-                          </button>
-                        </div>
+                    {editMode && editedStaff
+                      ? Object.entries(editedStaff.workingHours).map(
+                          ([day, hours]) => (
+                            <div key={day} className="flex items-center gap-4">
+                              <div className="w-28 font-medium capitalize text-white">
+                                {day}
+                              </div>
+                              <div className="flex items-center">
+                                <button
+                                  type="button"
+                                  className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white cursor-pointer"
+                                  onClick={() => editMode && toggleWorkDay(day)}
+                                  aria-pressed={!!(hours.start && hours.end)}
+                                >
+                                  <span
+                                    className={`${
+                                      hours.start && hours.end
+                                        ? "bg-white translate-x-6"
+                                        : "bg-gray-400 translate-x-1"
+                                    } inline-block h-4 w-4 transform rounded-full transition-transform`}
+                                  />
+                                </button>
+                              </div>
 
-                        <div className="flex items-center gap-2">
-                          <select
-                            className={`border rounded p-2 w-28 ${
-                              (!hours.start && !hours.end) || !editMode
-                                ? "bg-gray-900 text-gray-500 cursor-not-allowed"
-                                : "bg-black text-white"
-                            }`}
-                            value={hours.start || "09:00"}
-                            onChange={(e) =>
-                              editMode &&
-                              handleWorkingHoursChange(
-                                day,
-                                "start",
-                                e.target.value
-                              )
-                            }
-                            disabled={(!hours.start && !hours.end) || !editMode}
-                          >
-                            <option value="08:00">08:00</option>
-                            <option value="08:30">08:30</option>
-                            <option value="09:00">09:00</option>
-                            <option value="09:30">09:30</option>
-                            <option value="10:00">10:00</option>
-                            <option value="10:30">10:30</option>
-                            <option value="11:00">11:00</option>
-                            <option value="11:30">11:30</option>
-                            <option value="12:00">12:00</option>
-                          </select>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  className={`border rounded p-2 w-28 ${
+                                    (!hours.start && !hours.end) || !editMode
+                                      ? "bg-gray-900 text-gray-500 cursor-not-allowed"
+                                      : "bg-black text-white"
+                                  }`}
+                                  value={hours.start || "09:00"}
+                                  onChange={(e) =>
+                                    editMode &&
+                                    handleWorkingHoursChange(
+                                      day,
+                                      "start",
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={
+                                    (!hours.start && !hours.end) || !editMode
+                                  }
+                                >
+                                  <option value="08:00">08:00</option>
+                                  <option value="08:30">08:30</option>
+                                  <option value="09:00">09:00</option>
+                                  <option value="09:30">09:30</option>
+                                  <option value="10:00">10:00</option>
+                                  <option value="10:30">10:30</option>
+                                  <option value="11:00">11:00</option>
+                                  <option value="11:30">11:30</option>
+                                  <option value="12:00">12:00</option>
+                                </select>
 
-                          <span className="text-gray-400">to</span>
+                                <span className="text-gray-400">to</span>
 
-                          <select
-                            className={`border rounded p-2 w-28 ${
-                              (!hours.start && !hours.end) || !editMode
-                                ? "bg-gray-900 text-gray-500 cursor-not-allowed"
-                                : "bg-black text-white"
-                            }`}
-                            value={hours.end || "17:00"}
-                            onChange={(e) =>
-                              editMode &&
-                              handleWorkingHoursChange(
-                                day,
-                                "end",
-                                e.target.value
-                              )
-                            }
-                            disabled={(!hours.start && !hours.end) || !editMode}
-                          >
-                            <option value="16:00">16:00</option>
-                            <option value="16:30">16:30</option>
-                            <option value="17:00">17:00</option>
-                            <option value="17:30">17:30</option>
-                            <option value="18:00">18:00</option>
-                            <option value="18:30">18:30</option>
-                            <option value="19:00">19:00</option>
-                            <option value="19:30">19:30</option>
-                            <option value="20:00">20:00</option>
-                          </select>
-                        </div>
-                      </div>
-                    ))}
+                                <select
+                                  className={`border rounded p-2 w-28 ${
+                                    (!hours.start && !hours.end) || !editMode
+                                      ? "bg-gray-900 text-gray-500 cursor-not-allowed"
+                                      : "bg-black text-white"
+                                  }`}
+                                  value={hours.end || "17:00"}
+                                  onChange={(e) =>
+                                    editMode &&
+                                    handleWorkingHoursChange(
+                                      day,
+                                      "end",
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={!hours.start && !hours.end}
+                                >
+                                  <option value="16:00">16:00</option>
+                                  <option value="16:30">16:30</option>
+                                  <option value="17:00">17:00</option>
+                                  <option value="17:30">17:30</option>
+                                  <option value="18:00">18:00</option>
+                                  <option value="18:30">18:30</option>
+                                  <option value="19:00">19:00</option>
+                                  <option value="19:30">19:30</option>
+                                  <option value="20:00">20:00</option>
+                                </select>
+                              </div>
+                            </div>
+                          )
+                        )
+                      : selectedStaff &&
+                        Object.entries(selectedStaff.workingHours).map(
+                          ([day, hours]) => (
+                            <div key={day} className="flex items-center gap-4">
+                              <div className="w-28 font-medium capitalize text-white">
+                                {day}
+                              </div>
+                              <div className="flex items-center">
+                                <button
+                                  type="button"
+                                  className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white cursor-pointer"
+                                  onClick={() => editMode && toggleWorkDay(day)}
+                                  aria-pressed={!!(hours.start && hours.end)}
+                                >
+                                  <span
+                                    className={`${
+                                      hours.start && hours.end
+                                        ? "bg-white translate-x-6"
+                                        : "bg-gray-400 translate-x-1"
+                                    } inline-block h-4 w-4 transform rounded-full transition-transform`}
+                                  />
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <select
+                                  className={`border rounded p-2 w-28 ${
+                                    (!hours.start && !hours.end) || !editMode
+                                      ? "bg-gray-900 text-gray-500 cursor-not-allowed"
+                                      : "bg-black text-white"
+                                  }`}
+                                  value={hours.start || "09:00"}
+                                  onChange={(e) =>
+                                    editMode &&
+                                    handleWorkingHoursChange(
+                                      day,
+                                      "start",
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={
+                                    (!hours.start && !hours.end) || !editMode
+                                  }
+                                >
+                                  <option value="08:00">08:00</option>
+                                  <option value="08:30">08:30</option>
+                                  <option value="09:00">09:00</option>
+                                  <option value="09:30">09:30</option>
+                                  <option value="10:00">10:00</option>
+                                  <option value="10:30">10:30</option>
+                                  <option value="11:00">11:00</option>
+                                  <option value="11:30">11:30</option>
+                                  <option value="12:00">12:00</option>
+                                </select>
+
+                                <span className="text-gray-400">to</span>
+
+                                <select
+                                  className={`border rounded p-2 w-28 ${
+                                    (!hours.start && !hours.end) || !editMode
+                                      ? "bg-gray-900 text-gray-500 cursor-not-allowed"
+                                      : "bg-black text-white"
+                                  }`}
+                                  value={hours.end || "17:00"}
+                                  onChange={(e) =>
+                                    editMode &&
+                                    handleWorkingHoursChange(
+                                      day,
+                                      "end",
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={!hours.start && !hours.end}
+                                >
+                                  <option value="16:00">16:00</option>
+                                  <option value="16:30">16:30</option>
+                                  <option value="17:00">17:00</option>
+                                  <option value="17:30">17:30</option>
+                                  <option value="18:00">18:00</option>
+                                  <option value="18:30">18:30</option>
+                                  <option value="19:00">19:00</option>
+                                  <option value="19:30">19:30</option>
+                                  <option value="20:00">20:00</option>
+                                </select>
+                              </div>
+                            </div>
+                          )
+                        )}
                   </div>
                 </div>
               </TabsContent>
@@ -1464,7 +1607,7 @@ export default function StaffPage() {
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Annual Salary
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="salary"
                           type="number"
@@ -1472,17 +1615,13 @@ export default function StaffPage() {
                           onChange={(e) => handleInputChange(e, "payroll")}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          ${selectedStaff.payroll.salary.toLocaleString()}
-                        </div>
                       )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Payment Frequency
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Select
                           value={editedStaff.payroll.paymentFrequency}
                           onValueChange={(value) =>
@@ -1504,17 +1643,13 @@ export default function StaffPage() {
                             <SelectItem value="Monthly">Monthly</SelectItem>
                           </SelectContent>
                         </Select>
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.payroll.paymentFrequency}
-                        </div>
                       )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Last Payment Date
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="lastPayment"
                           type="date"
@@ -1522,13 +1657,6 @@ export default function StaffPage() {
                           onChange={(e) => handleInputChange(e, "payroll")}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {format(
-                            new Date(selectedStaff.payroll.lastPayment),
-                            "MMMM d, yyyy"
-                          )}
-                        </div>
                       )}
                     </div>
                   </div>
@@ -1539,51 +1667,39 @@ export default function StaffPage() {
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Account Name
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="accountName"
                           value={editedStaff.payroll.bankDetails.accountName}
                           onChange={(e) => handleInputChange(e, "bankDetails")}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.payroll.bankDetails.accountName}
-                        </div>
                       )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Bank Name
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="bankName"
                           value={editedStaff.payroll.bankDetails.bankName}
                           onChange={(e) => handleInputChange(e, "bankDetails")}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.payroll.bankDetails.bankName}
-                        </div>
                       )}
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-400 mb-1">
                         Account Number
                       </Label>
-                      {editMode ? (
+                      {editMode && editedStaff && (
                         <Input
                           name="accountNumber"
                           value={editedStaff.payroll.bankDetails.accountNumber}
                           onChange={(e) => handleInputChange(e, "bankDetails")}
                           className="mt-1"
                         />
-                      ) : (
-                        <div className="border rounded-md p-2">
-                          {selectedStaff.payroll.bankDetails.accountNumber}
-                        </div>
                       )}
                     </div>
                   </div>
@@ -1877,7 +1993,7 @@ export default function StaffPage() {
                           type="button"
                           className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white cursor-pointer"
                           onClick={() => toggleNewStaffWorkDay(day)}
-                          aria-pressed={hours.start && hours.end}
+                          aria-pressed={!!(hours.start && hours.end)}
                         >
                           <span
                             className={`${
@@ -2071,19 +2187,4 @@ export default function StaffPage() {
       </Dialog>
     </div>
   );
-}
-
-export function getRoleBadgeClass(role) {
-  switch (role) {
-    case "Doctor":
-      return "bg-blue-500 text-white";
-    case "Receptionist":
-      return "bg-green-500 text-white";
-    case "Dental Assistant":
-      return "bg-purple-500 text-white";
-    case "Office Manager":
-      return "bg-yellow-500 text-black";
-    default:
-      return "bg-gray-500 text-white";
-  }
 }

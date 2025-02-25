@@ -47,6 +47,48 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Add this interface at the top of the file, after imports
+interface Patient {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  lastVisit: string;
+  nextAppointment: string;
+  status: string;
+  avatar: string;
+  initials: string;
+  dateOfBirth: string;
+  emergencyContact: {
+    name: string;
+    relationship: string;
+    phone: string;
+  };
+  treatmentHistory: Array<{
+    id: string;
+    title: string;
+    date: string;
+    notes: string;
+    doctor: string;
+    status: string;
+  }>;
+  medicalNotes: string;
+  files: Array<{
+    id: string;
+    name: string;
+    uploadDate: string;
+    size: string;
+  }>;
+  payments: Array<{
+    id: string;
+    invoiceId?: string;
+    date: string;
+    service: string;
+    amount: number;
+    status: string;
+  }>;
+}
+
 // Rename the mock data array
 const patientsData = [
   {
@@ -116,6 +158,7 @@ const patientsData = [
     payments: [
       {
         id: "INV-001",
+        invoiceId: "INV-001",
         date: "2024-02-20",
         service: "Dental Check-up",
         amount: 150.0,
@@ -123,6 +166,7 @@ const patientsData = [
       },
       {
         id: "INV-002",
+        invoiceId: "INV-002",
         date: "2024-01-15",
         service: "X-Ray Examination",
         amount: 300.0,
@@ -130,6 +174,7 @@ const patientsData = [
       },
       {
         id: "INV-003",
+        invoiceId: "INV-003",
         date: "2023-12-10",
         service: "Cavity Filling",
         amount: 250.0,
@@ -183,19 +228,19 @@ const patientsData = [
 
 export default function PatientsPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [editedPatient, setEditedPatient] = useState(null);
+  const [editedPatient, setEditedPatient] = useState<Patient | null>(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [medicalNotes, setMedicalNotes] = useState("");
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef(null);
-  const [patients, setPatients] = useState(patientsData);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [patients, setPatients] = useState<Patient[]>(patientsData);
 
-  const handleViewPatient = (patient) => {
+  const handleViewPatient = (patient: Patient) => {
     setSelectedPatient(patient);
-    setEditedPatient(JSON.parse(JSON.stringify(patient))); // Create a deep copy
+    setEditedPatient(JSON.parse(JSON.stringify(patient)));
     setMedicalNotes(patient.medicalNotes || "");
     setProfileOpen(true);
     setEditMode(false);
@@ -214,26 +259,30 @@ export default function PatientsPage() {
   };
 
   const handleSaveChanges = () => {
-    // In a real app, you would save changes to the backend here
-    // For this demo, we'll just update the local state
-    setPatients(
-      patients.map((p) => (p.id === editedPatient.id ? editedPatient : p))
-    );
+    // Only update if editedPatient is not null
+    if (editedPatient) {
+      setPatients(
+        patients.map((p) => (p.id === editedPatient.id ? editedPatient : p))
+      );
 
-    // In a real app, you would update the global state or make an API call
-
-    setEditMode(false);
+      // Update the selected patient as well
+      setSelectedPatient(editedPatient);
+      setEditMode(false);
+    }
   };
 
-  const handleInputChange = (e, section = "basic") => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    section = "basic"
+  ) => {
     const { name, value } = e.target;
 
-    if (section === "basic") {
+    if (section === "basic" && editedPatient) {
       setEditedPatient({
         ...editedPatient,
         [name]: value,
       });
-    } else if (section === "emergency") {
+    } else if (section === "emergency" && editedPatient) {
       setEditedPatient({
         ...editedPatient,
         emergencyContact: {
@@ -257,11 +306,13 @@ export default function PatientsPage() {
   };
 
   const handleCancelNotes = () => {
-    setMedicalNotes(selectedPatient.medicalNotes || "");
-    setEditingNotes(false);
+    if (selectedPatient) {
+      setMedicalNotes(selectedPatient.medicalNotes || "");
+      setEditingNotes(false);
+    }
   };
 
-  const handleStatusChange = (treatmentId, newStatus) => {
+  const handleStatusChange = (treatmentId: string, newStatus: string) => {
     if (selectedPatient) {
       // Create a copy of the patient's treatment history
       const updatedTreatments = selectedPatient.treatmentHistory.map(
@@ -281,7 +332,7 @@ export default function PatientsPage() {
     }
   };
 
-  const handlePaymentStatusChange = (paymentId, newStatus) => {
+  const handlePaymentStatusChange = (paymentId: string, newStatus: string) => {
     if (selectedPatient) {
       // Create a copy of the patient's payment history
       const updatedPayments = selectedPatient.payments.map((payment) =>
@@ -299,7 +350,7 @@ export default function PatientsPage() {
   };
 
   // Get the appropriate badge color based on status
-  const getStatusBadgeClass = (status) => {
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "Completed":
         return "bg-green-900 text-green-100 border-green-700 hover:bg-green-900";
@@ -311,7 +362,7 @@ export default function PatientsPage() {
   };
 
   // Get the appropriate icon based on status
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case "Completed":
         return <Check className="h-4 w-4 mr-2" />;
@@ -323,7 +374,7 @@ export default function PatientsPage() {
   };
 
   // Get the appropriate badge color based on payment status
-  const getPaymentStatusBadgeClass = (status) => {
+  const getPaymentStatusBadgeClass = (status: string) => {
     switch (status) {
       case "Paid":
         return "bg-green-900 text-green-100 border-green-700 hover:bg-green-900";
@@ -334,7 +385,7 @@ export default function PatientsPage() {
     }
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
@@ -343,7 +394,7 @@ export default function PatientsPage() {
     setIsDragging(false);
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
 
@@ -352,17 +403,19 @@ export default function PatientsPage() {
     }
   };
 
-  const handleFileInputChange = (e) => {
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFiles(e.target.files);
     }
   };
 
   const handleBrowseClick = () => {
-    fileInputRef.current.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
-  const handleFiles = (files) => {
+  const handleFiles = (files: FileList) => {
     // In a real app, you would upload these files to your server
     // For this demo, we'll just add them to the patient's files array
     if (selectedPatient) {
@@ -380,13 +433,13 @@ export default function PatientsPage() {
     }
   };
 
-  const formatFileSize = (bytes) => {
+  const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + " B";
     else if (bytes < 1048576) return (bytes / 1024).toFixed(0) + " KB";
     else return (bytes / 1048576).toFixed(1) + " MB";
   };
 
-  const handleDownload = (fileId) => {
+  const handleDownload = (fileId: string) => {
     // In a real app, this would trigger a file download
     console.log(`Downloading file with ID: ${fileId}`);
     // You would typically make an API call to get the file and trigger a download
@@ -598,7 +651,7 @@ export default function PatientsPage() {
                       <Label className="text-sm font-medium text-gray-700 mb-1">
                         Full Name
                       </Label>
-                      {editMode ? (
+                      {editMode && editedPatient ? (
                         <Input
                           name="name"
                           value={editedPatient.name}
@@ -615,7 +668,7 @@ export default function PatientsPage() {
                       <Label className="text-sm font-medium text-gray-700 mb-1">
                         Date of Birth
                       </Label>
-                      {editMode ? (
+                      {editMode && editedPatient ? (
                         <Input
                           name="dateOfBirth"
                           type="date"
@@ -636,7 +689,7 @@ export default function PatientsPage() {
                       <Label className="text-sm font-medium text-gray-700 mb-1">
                         Phone
                       </Label>
-                      {editMode ? (
+                      {editMode && editedPatient ? (
                         <Input
                           name="phone"
                           value={editedPatient.phone}
@@ -653,7 +706,7 @@ export default function PatientsPage() {
                       <Label className="text-sm font-medium text-gray-700 mb-1">
                         Email
                       </Label>
-                      {editMode ? (
+                      {editMode && editedPatient ? (
                         <Input
                           name="email"
                           type="email"
@@ -677,7 +730,7 @@ export default function PatientsPage() {
                       <Label className="text-sm font-medium text-gray-700 mb-1">
                         Contact Name
                       </Label>
-                      {editMode ? (
+                      {editMode && editedPatient ? (
                         <Input
                           name="name"
                           value={editedPatient.emergencyContact.name}
@@ -694,7 +747,7 @@ export default function PatientsPage() {
                       <Label className="text-sm font-medium text-gray-700 mb-1">
                         Relationship
                       </Label>
-                      {editMode ? (
+                      {editMode && editedPatient ? (
                         <Input
                           name="relationship"
                           value={editedPatient.emergencyContact.relationship}
@@ -711,7 +764,7 @@ export default function PatientsPage() {
                       <Label className="text-sm font-medium text-gray-700 mb-1">
                         Phone
                       </Label>
-                      {editMode ? (
+                      {editMode && editedPatient ? (
                         <Input
                           name="phone"
                           value={editedPatient.emergencyContact.phone}

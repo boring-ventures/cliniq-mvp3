@@ -48,13 +48,13 @@ export default function RemindersPage() {
   const [date, setDate] = useState<Date>();
   const [open, setOpen] = useState(false);
   const [reminderType, setReminderType] = useState("appointment");
-  const [followupSchedule, setFollowupSchedule] = useState([
-    { id: 1, date: undefined, time: "", message: "" },
-  ]);
+  const [followupSchedule, setFollowupSchedule] = useState<
+    Array<{ id: number; date: Date | undefined; time: string; message: string }>
+  >([{ id: 1, date: undefined, time: "", message: "" }]);
   const [followupModalOpen, setFollowupModalOpen] = useState(false);
-  const [tempFollowupSchedule, setTempFollowupSchedule] = useState([
-    { id: 1, date: undefined, time: "", message: "" },
-  ]);
+  const [tempFollowupSchedule, setTempFollowupSchedule] = useState<
+    Array<{ id: number; date: Date | undefined; time: string; message: string }>
+  >([{ id: 1, date: undefined, time: "", message: "" }]);
   const [patientSearch, setPatientSearch] = useState("");
   const [showPatientResults, setShowPatientResults] = useState(false);
   const [_selectedPatient, setSelectedPatient] = useState<{
@@ -232,9 +232,7 @@ export default function RemindersPage() {
   };
 
   // Add a function to handle editing follow-up reminders
-  const handleEditFollowUp = (reminder: {
-    scheduledFor: string;
-  }) => {
+  const handleEditFollowUp = (reminder: { scheduledFor: string }) => {
     // Set up the temporary follow-up schedule based on the reminder's data
     // This is a simplified example - in a real app, you'd fetch the actual follow-up schedule
     setTempFollowupSchedule([

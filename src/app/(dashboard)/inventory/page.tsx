@@ -133,12 +133,25 @@ const productSuggestions = [
   "Dental Suction Tips",
 ];
 
+// Define an interface for inventory items
+interface InventoryItem {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  minStock: number;
+  supplier: string;
+  lastRestocked: string;
+  price: number;
+}
+
 export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [newItemOpen, setNewItemOpen] = useState(false);
   const [editItemOpen, setEditItemOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [categories, setCategories] = useState(initialCategories);
   const [units, setUnits] = useState(initialUnits);
   const [newCategoryOpen, setNewCategoryOpen] = useState(false);
@@ -146,7 +159,7 @@ export default function InventoryPage() {
   const [newCategory, setNewCategory] = useState("");
   const [newUnit, setNewUnit] = useState("");
   const [showItemSuggestions, setShowItemSuggestions] = useState(false);
-  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
 
   const [newItem, setNewItem] = useState({
     name: "",
@@ -183,7 +196,7 @@ export default function InventoryPage() {
     });
   };
 
-  const handleEditItem = (item) => {
+  const handleEditItem = (item: InventoryItem) => {
     setSelectedItem(item);
     setEditItemOpen(true);
   };
@@ -200,7 +213,10 @@ export default function InventoryPage() {
     setEditItemOpen(false);
   };
 
-  const handleInputChange = (e, isNewItem = true) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    isNewItem = true
+  ) => {
     const { name, value } = e.target;
     if (isNewItem) {
       setNewItem({
@@ -214,7 +230,7 @@ export default function InventoryPage() {
       if (name === "name") {
         setShowItemSuggestions(value.length > 0);
       }
-    } else {
+    } else if (selectedItem) {
       setSelectedItem({
         ...selectedItem,
         [name]:
@@ -225,13 +241,17 @@ export default function InventoryPage() {
     }
   };
 
-  const handleSelectChange = (value, field, isNewItem = true) => {
+  const handleSelectChange = (
+    value: string,
+    field: string,
+    isNewItem = true
+  ) => {
     if (isNewItem) {
       setNewItem({
         ...newItem,
         [field]: value,
       });
-    } else {
+    } else if (selectedItem) {
       setSelectedItem({
         ...selectedItem,
         [field]: value,
@@ -281,7 +301,7 @@ export default function InventoryPage() {
     }
   };
 
-  const handleSelectSuggestion = (suggestion) => {
+  const handleSelectSuggestion = (suggestion: string) => {
     setNewItem({
       ...newItem,
       name: suggestion,

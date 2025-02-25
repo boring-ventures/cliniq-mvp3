@@ -1,8 +1,10 @@
 "use client";
 
 import { ReactNode } from "react";
-import { Permission } from "@prisma/client";
+import { Permission } from "@/types/permissions";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 interface PermissionGuardProps {
   /**
@@ -24,6 +26,11 @@ interface PermissionGuardProps {
    * Optional content to render if the user doesn't have the required permissions
    */
   fallback?: ReactNode;
+  
+  /**
+   * Optional URL to redirect to if the user doesn't have the required permissions
+   */
+  redirectTo?: string;
 }
 
 /**
@@ -34,8 +41,10 @@ export function PermissionGuard({
   requireAll = false,
   children,
   fallback = null,
+  redirectTo,
 }: PermissionGuardProps) {
   const { hasAllPermissions, hasAnyPermission } = usePermissions();
+  const router = useRouter();
 
   // Convert single permission to array
   const permissionArray = Array.isArray(permissions)
@@ -46,6 +55,13 @@ export function PermissionGuard({
   const hasRequiredPermissions = requireAll
     ? hasAllPermissions(permissionArray)
     : hasAnyPermission(permissionArray);
+
+  // Redirect if specified and user doesn't have permissions
+  useEffect(() => {
+    if (!hasRequiredPermissions && redirectTo) {
+      router.push(redirectTo);
+    }
+  }, [hasRequiredPermissions, redirectTo, router]);
 
   // Render children if user has permissions, otherwise render fallback
   return hasRequiredPermissions ? <>{children}</> : <>{fallback}</>;

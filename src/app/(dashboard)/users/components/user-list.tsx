@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Permission } from "@prisma/client";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import {
   Table,
@@ -37,6 +36,12 @@ import { PermissionGuard } from "@/components/auth/permission-guard";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+
+enum Permission {
+  UPDATE_USER = "UPDATE_USER",
+  MANAGE_PERMISSIONS = "MANAGE_PERMISSIONS",
+  DELETE_USER = "DELETE_USER",
+}
 
 interface User {
   id: string;
@@ -264,7 +269,7 @@ export function UserList() {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <PermissionGuard
-                          permission={Permission.UPDATE_USER}
+                          permissions={[Permission.UPDATE_USER]}
                           fallback={null}
                         >
                           <DropdownMenuItem
@@ -275,7 +280,7 @@ export function UserList() {
                           </DropdownMenuItem>
                         </PermissionGuard>
                         <PermissionGuard
-                          permission={Permission.MANAGE_PERMISSIONS}
+                          permissions={Permission.MANAGE_PERMISSIONS}
                           fallback={null}
                         >
                           <DropdownMenuItem
@@ -288,7 +293,7 @@ export function UserList() {
                           </DropdownMenuItem>
                         </PermissionGuard>
                         <PermissionGuard
-                          permission={Permission.DELETE_USER}
+                          permissions={Permission.DELETE_USER}
                           fallback={null}
                         >
                           <DropdownMenuItem

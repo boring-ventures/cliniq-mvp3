@@ -52,6 +52,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Define an Invoice interface at the top of the file
+interface Invoice {
+  id: string;
+  patientName: string;
+  date: string;
+  dueDate: string;
+  amount: number;
+  status: string;
+  paymentMethod: string;
+  paymentDate: string;
+  items: Array<{
+    id: string;
+    description: string;
+    quantity: number;
+    price: number;
+  }>;
+  notes: string;
+  doctor: string;
+}
+
 // Mock invoice data
 const invoices = [
   {
@@ -195,19 +215,19 @@ const expenses = [
 
 export default function FinancesPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("invoices");
   const [filterStatus, setFilterStatus] = useState("all");
   const [dateRange, setDateRange] = useState("all");
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
 
-  const handleViewInvoice = (invoice) => {
+  const handleViewInvoice = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setInvoiceOpen(true);
   };
 
-  const handleStatusChange = (invoiceId, newStatus) => {
+  const handleStatusChange = (invoiceId: string, newStatus: string) => {
     // In a real app, you would update the backend
     // This would update all invoices in the state
     invoices.map((invoice) =>
@@ -221,21 +241,24 @@ export default function FinancesPage() {
   };
 
   const handlePrintInvoice = () => {
-    // In a real app, this would trigger a print dialog
-    console.log("Printing invoice:", selectedInvoice.id);
+    if (selectedInvoice) {
+      console.log("Printing invoice:", selectedInvoice.id);
+    }
   };
 
   const handleDownloadInvoice = () => {
-    // In a real app, this would download a PDF
-    console.log("Downloading invoice:", selectedInvoice.id);
+    if (selectedInvoice) {
+      console.log("Downloading invoice:", selectedInvoice.id);
+    }
   };
 
   const handleSendInvoice = () => {
-    // In a real app, this would send the invoice via email
-    console.log("Sending invoice:", selectedInvoice.id);
+    if (selectedInvoice) {
+      console.log("Sending invoice:", selectedInvoice.id);
+    }
   };
 
-  const getStatusBadgeClass = (status) => {
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "Paid":
         return "bg-green-900 text-green-100 border-green-700 hover:bg-green-900";
@@ -248,7 +271,7 @@ export default function FinancesPage() {
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case "Paid":
         return <Check className="h-4 w-4 mr-2" />;

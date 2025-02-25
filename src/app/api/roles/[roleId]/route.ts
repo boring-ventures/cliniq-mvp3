@@ -14,7 +14,7 @@ const roleUpdateSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { roleId: string } }
+  { params }: { params: Promise<{ roleId: string }> }
 ) {
   // Check if user has permission to read roles
   const permissionError = await requirePermission(
@@ -24,7 +24,8 @@ export async function GET(
   if (permissionError) return permissionError;
 
   try {
-    const roleId = parseInt(params.roleId);
+    const resolvedParams = await params;
+    const roleId = resolvedParams.roleId;
 
     if (isNaN(roleId)) {
       return NextResponse.json({ error: "Invalid role ID" }, { status: 400 });
@@ -78,7 +79,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { roleId: string } }
+  { params }: { params: Promise<{ roleId: string }> }
 ) {
   // Check if user has permission to update roles
   const permissionError = await requirePermission(
@@ -88,7 +89,8 @@ export async function PATCH(
   if (permissionError) return permissionError;
 
   try {
-    const roleId = parseInt(params.roleId);
+    const resolvedParams = await params;
+    const roleId = resolvedParams.roleId;
 
     if (isNaN(roleId)) {
       return NextResponse.json({ error: "Invalid role ID" }, { status: 400 });
@@ -209,7 +211,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { roleId: string } }
+  { params }: { params: Promise<{ roleId: string }> }
 ) {
   // Check if user has permission to delete roles
   const permissionError = await requirePermission(
@@ -219,7 +221,8 @@ export async function DELETE(
   if (permissionError) return permissionError;
 
   try {
-    const roleId = parseInt(params.roleId);
+    const resolvedParams = await params;
+    const roleId = resolvedParams.roleId;
 
     if (isNaN(roleId)) {
       return NextResponse.json({ error: "Invalid role ID" }, { status: 400 });

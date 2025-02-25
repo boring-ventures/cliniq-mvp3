@@ -17,7 +17,7 @@ async function createSuperAdminUser() {
   const password = "Admin@123"; // This should be changed after first login
 
   // Check if user already exists
-  const existingUser = await prisma.user.findUnique({
+  const existingUser = await prisma.profile.findUnique({
     where: { email },
   });
 
@@ -31,7 +31,7 @@ async function createSuperAdminUser() {
 
   // Create the user
   console.log("Creating super admin user");
-  const user = await prisma.user.create({
+  const user = await prisma.profile.create({
     data: {
       email,
       hashedPassword,
@@ -39,6 +39,7 @@ async function createSuperAdminUser() {
       lastName: "Administrator",
       role: RoleEnum.SUPER_ADMIN,
       isActive: true,
+      userId: email,
     },
   });
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Permission, UserRole } from "@prisma/client";
+import { Permission, UserRole } from "@/types/permissions";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,9 +55,14 @@ interface User {
   role_assignments: { role: string }[];
 }
 
-export default function EditUserPage({ params }: { params: { id: string } }) {
+export default function UserPage({
+  params,
+}: {
+  params: Promise<{ id: string }> | undefined;
+}) {
   const router = useRouter();
   const supabase = useSupabaseClient();
+  const [userId, setUserId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,13 +78,35 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
     },
   });
 
-  // Fetch user data
+  // Handle params resolution
   useEffect(() => {
+    async function resolveParams() {
+      try {
+        if (!params) {
+          router.push("/users");
+          return;
+        }
+
+        const resolvedParams = await params;
+        setUserId(resolvedParams.id);
+      } catch (error) {
+        console.error("Error resolving params:", error);
+        router.push("/users");
+      }
+    }
+
+    resolveParams();
+  }, [params, router]);
+
+  // Fetch user data when userId is available
+  useEffect(() => {
+    if (!userId) return;
+
     async function fetchUser() {
       try {
         setLoading(true);
         const { data, error } = await supabase.functions.invoke("get-user", {
-          body: { userId: params.id },
+          body: { userId },
         });
 
         if (error) {
@@ -116,7 +143,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
     }
 
     fetchUser();
-  }, [params.id, supabase, router, form]);
+  }, [userId, supabase, router, form]);
 
   // Handle form submission
   async function onSubmit(values: FormValues) {
@@ -126,7 +153,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
       // Update user in Supabase
       const { error } = await supabase.functions.invoke("update-user", {
         body: {
-          userId: params.id,
+          userId: userId,
           email: values.email,
           fullName: values.fullName,
           username: values.username,
@@ -159,7 +186,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <PermissionGuard permission={Permission.UPDATE_USER} redirectTo="/users">
+    <PermissionGuard permissions={Permission.UPDATE_USER} redirectTo="/users">
       <div className="container mx-auto py-6">
         <Button
           variant="ghost"
@@ -263,7 +290,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
                           </SelectItem>
                           <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
                           <PermissionGuard
-                            permission={Permission.CREATE_USER}
+                            permissions={Permission.CREATE_USER}
                             fallback={null}
                           >
                             <SelectItem value={UserRole.SUPERADMIN}>

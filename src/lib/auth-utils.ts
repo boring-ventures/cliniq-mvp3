@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Permission } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 
 const prisma = new PrismaClient();
@@ -9,6 +9,15 @@ export const authOptions = {
   providers: [],
   secret: process.env.NEXTAUTH_SECRET || "your-secret-key",
 };
+
+// Define the Permission enum manually if it's not exported
+enum PermissionEnum {
+  CREATE_USER = "CREATE_USER",
+  READ_USER = "READ_USER",
+  UPDATE_USER = "UPDATE_USER",
+  DELETE_USER = "DELETE_USER",
+  // Add all your permissions here
+}
 
 /**
  * Get the current authenticated user from the session
@@ -21,7 +30,43 @@ export async function getCurrentUser() {
   }
 
   try {
-    const user = await prisma.user.findUnique({
+    // Define a proper type for the user object
+    interface UserWithRole {
+      id: string;
+      email: string;
+      name?: string;
+      role: {
+        id: string;
+        name: string;
+        permissions: {
+          permission: string;
+        }[];
+      };
+    }
+
+    interface PrismaUserModel {
+      findUnique: (args: {
+        where: { email: string };
+        include: {
+          role: {
+            include: {
+              permissions: {
+                select: {
+                  permission: boolean;
+                };
+              };
+            };
+          };
+        };
+      }) => Promise<UserWithRole | null>;
+    }
+
+    interface ExtendedPrismaClient extends PrismaClient {
+      User: PrismaUserModel;
+    }
+
+    const prismaWithUser = prisma as unknown as ExtendedPrismaClient;
+    const user = await prismaWithUser.User.findUnique({
       where: { email: session.user.email },
       include: {
         role: {
@@ -46,7 +91,7 @@ export async function getCurrentUser() {
 /**
  * Check if the current user has the required permission
  */
-export async function hasPermission(permission: Permission) {
+export async function hasPermission(permission: string) {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -59,7 +104,9 @@ export async function hasPermission(permission: Permission) {
   }
 
   // Check if user has the specific permission
-  return user.role.permissions.some((p) => p.permission === permission);
+  return user.role.permissions.some(
+    (p: { permission: string }) => p.permission === permission
+  );
 }
 
 /**
@@ -67,7 +114,7 @@ export async function hasPermission(permission: Permission) {
  */
 export async function requirePermission(
   request: NextRequest,
-  permission: Permission
+  permission: string
 ) {
   const user = await getCurrentUser();
 
@@ -102,17 +149,17 @@ export async function getUserPermissions() {
 
   // Super Admin has all permissions
   if (user.role.name === "Super Admin") {
-    return Object.values(Permission);
+    return Object.values(PermissionEnum);
   }
 
   // Return user's permissions
-  return user.role.permissions.map((p) => p.permission);
+  return user.role.permissions.map((p: { permission: string }) => p.permission);
 }
 
 /**
  * Check if the current user has any of the required permissions
  */
-export async function hasAnyPermission(permissions: Permission[]) {
+export async function hasAnyPermission(permissions: string[]) {
   const userPermissions = await getUserPermissions();
 
   return permissions.some((permission) => userPermissions.includes(permission));
@@ -121,7 +168,7 @@ export async function hasAnyPermission(permissions: Permission[]) {
 /**
  * Check if the current user has all of the required permissions
  */
-export async function hasAllPermissions(permissions: Permission[]) {
+export async function hasAllPermissions(permissions: string[]) {
   const userPermissions = await getUserPermissions();
 
   return permissions.every((permission) =>

@@ -1,2 +1,5 @@
 # Add this line to your .eslintignore file
 .next/types/**/* 
+
+# Ignore all Next.js generated files
+.next/ 
