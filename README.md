@@ -1,189 +1,208 @@
-# Modern Next.js Template
+# Cliniq ERP MVP To-Do List
 
-A modern, full-stack Next.js template with Prisma, Supabase, React Query, and more. Built with TypeScript and featuring a complete development setup.
+> **Note:** This list starts with **User Creation & Role Management** to establish a solid foundation for the entire ERP platform.
 
-## 🚀 Features
+## 1. User Creation & Role Management (Core Foundation)
 
-- ⚡️ Next.js 15 with App Router
-- 🔋 Prisma ORM with PostgreSQL
-- 🔑 Authentication with NextAuth.js
-- 🎨 Tailwind CSS for styling
-- 📊 React Query for data fetching
-- 🏢 Type-safe database queries
-- 🔄 React Hook Form with Zod validation
-- 📅 Date handling with date-fns
-- 🎭 Dark mode support with next-themes
-- 📊 Recharts for data visualization
-- 🛠 Complete TypeScript support
+### 1.1 Architecture & Data Model
+- [ ] **Design RBAC (Role-Based Access Control)**:
+  - [ ] Define `User`, `Role`, `Permission` models in the database.
+  - [ ] Establish relationships between Users and Roles (one-to-many or many-to-many, depending on needs).
+  - [ ] Create a `Permissions` table or enum if granular permissions are required.
+- [ ] **Set up Auth Mechanism**:
+  - [ ] Use Supabase Auth or another provider for secure authentication.
+  - [ ] Integrate email/password flow and multi-factor authentication (if needed).
+  - [ ] Ensure tokens or sessions are securely managed.
+- [ ] **Plan Data Migration/Seeding**:
+  - [ ] Create a `Super Admin` role with full permissions.
+  - [ ] Seed a default user with `Super Admin` privileges.
 
-## 📦 Prerequisites
+### 1.2 User Management (Admin Panel)
+- [ ] **User List Screen**:
+  - [ ] Display user info, roles, permissions, and activity logs.
+  - [ ] Filter, sort, and search users.
+- [ ] **User Profile Screen**:
+  - [ ] Allow admins to view and edit personal details (name, email, etc.).
+  - [ ] Display assigned role(s) and last login info.
+- [ ] **Create/Edit User Screen**:
+  - [ ] Add a form to create new users (name, email, password, role).
+  - [ ] Enable role assignment and permission toggles.
+  - [ ] Implement validations (unique email, password strength).
+- [ ] **Role & Permission Management**:
+  - [ ] Admin interface to create/edit roles.
+  - [ ] Assign or revoke permissions at role level.
+  - [ ] Log changes to roles for audit purposes.
 
-- Node.js 18+ 
-- PostgreSQL database (local or Supabase)
-- pnpm (recommended) or npm
+---
 
-## 🛠 Setup
+## 2. Authentication & Security
 
-1. Clone the repository:
-```bash
-git clone [your-repo-url]
-cd [your-project-name]
-```
+### 2.1 Login & Password Recovery
+- [ ] **Login Screen**:
+  - [ ] Email/Password input.
+  - [ ] 2FA (Two-Factor Authentication) toggle.
+- [ ] **Forgot Password Screen**:
+  - [ ] Password reset via email link or code.
+- [ ] **Logout Mechanism**:
+  - [ ] Clear sessions/tokens securely.
+  - [ ] Redirect to login page.
 
-2. Install dependencies:
-```bash
-pnpm install
-```
+### 2.2 Access Control & Auditing
+- [ ] **Role-Based Routing**:
+  - [ ] Restrict routes/components based on user roles/permissions.
+- [ ] **Audit Logs**:
+  - [ ] Track all significant actions (user creation, role changes, data edits).
+  - [ ] Store logs in a separate table or logging service for easy retrieval.
 
-3. Set up your environment variables:
-```bash
-cp .env.example .env
-```
+---
 
-4. Configure your `.env` file:
-```env
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/dbname?schema=public"
+## 3. Dashboard & Navigation
 
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+### 3.1 Admin/Receptionist Dashboard
+- [ ] **Appointment Overview**: Daily/weekly summary.
+- [ ] **Revenue Overview**: Total earnings, pending invoices.
+- [ ] **Inventory Alerts**: Low-stock items.
+- [ ] **Doctor Availability**: Current status of each doctor.
+- [ ] **Patient Reminders**: Summary of upcoming WhatsApp reminders.
 
-# NextAuth.js
-NEXTAUTH_SECRET=your-secret-key
-NEXTAUTH_URL=http://localhost:3000
+### 3.2 Doctor’s Dashboard
+- [ ] **Upcoming Appointments**: Calendar or list view.
+- [ ] **Patient Lookup**: Quick search of past treatments.
+- [ ] **Task List**: Pending follow-ups or case updates.
 
-# Optional: OAuth Providers
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-```
+---
 
-5. Initialize Prisma:
-```bash
-pnpm prisma generate
-pnpm prisma db push
-```
+## 4. Appointment Management
 
-## 🚀 Development
+### 4.1 Appointment Scheduling
+- [ ] **New Appointment Form**: Select doctor, date, time, reason.
+- [ ] **Calendar Views**:
+  - [ ] Individual calendars for each doctor.
+  - [ ] Global calendar with color-coded appointments per doctor.
+- [ ] **Search & Filter** by doctor, patient, status.
 
-Start the development server:
-```bash
-pnpm dev
-```
+### 4.2 Appointment Details
+- [ ] **Patient Information**: Name, contact, treatment history link.
+- [ ] **Doctor Notes**: Treatment details, diagnosis.
+- [ ] **Payment Status**: Paid, pending, overdue.
+- [ ] **Changes History**: Track edits and reschedules.
 
-Your app will be available at `http://localhost:3000`
+### 4.3 Appointment Reminders
+- [ ] **WhatsApp Notification Log**: Sent & pending.
+- [ ] **Manual Reminder Trigger**: One-click reminders.
+- [ ] **Auto Reminders**: 24h, 1h before, etc.
 
-## 📝 Database Management
+---
 
-### Initialize Prisma
-```bash
-pnpm prisma init
-```
+## 5. Patient Management & EMR
 
-### Create a migration
-```bash
-pnpm prisma migrate dev --name init
-```
+### 5.1 Patient List Screen
+- [ ] **Search & Filter** by name, phone, last visit.
+- [ ] **Quick View**: Essential details pop-up.
+- [ ] **Add New Patient**: Registration form.
 
-### Reset database
-```bash
-pnpm prisma migrate reset
-```
+### 5.2 Patient Profile & Medical History
+- [ ] **Basic Details**: Name, contact, emergency contact.
+- [ ] **Treatment History**: Chronological record.
+- [ ] **Medical Notes**: Doctor’s observations, diagnoses.
+- [ ] **File Upload**: X-rays, test results, prescriptions.
+- [ ] **Payment History**: List of invoices and statuses.
 
-### Open Prisma Studio
-```bash
-pnpm prisma studio
-```
+---
 
-## 🏗 Project Structure
+## 6. Inventory Management
 
-```
-├── app/                   # Next.js App Router
-│   ├── api/              # API routes
-│   ├── (auth)/          # Authentication routes
-│   └── (dashboard)/     # Protected dashboard routes
-├── components/           # React components
-├── lib/                  # Utility functions
-├── prisma/              # Prisma schema and migrations
-└── public/              # Static assets
-```
+### 6.1 Inventory Dashboard
+- [ ] **Stock Overview**: Current items and low-stock alerts.
+- [ ] **Recent Usage Log**: Record of consumed supplies.
 
-## 🧪 Testing
+### 6.2 Inventory List & Search
+- [ ] **Filter by Category**: Medication, tools, disposables.
+- [ ] **Supplier Details**: Vendor list & reorder history.
 
-```bash
-pnpm test        # Run tests
-pnpm test:watch  # Run tests in watch mode
-```
+### 6.3 Inventory Item Details
+- [ ] **Stock Status**: Available, reserved, expired.
+- [ ] **Usage Logs**: Who used the item and when.
 
-## 🚀 Deployment
+### 6.4 Reorder & Restock
+- [ ] **Low Stock Alerts**: Automatic notifications.
+- [ ] **Create Purchase Orders**: Issue orders to suppliers.
+- [ ] **Order Tracking**: Keep records of orders and deliveries.
 
-1. Build the application:
-```bash
-pnpm build
-```
+---
 
-2. Start the production server:
-```bash
-pnpm start
-```
+## 7. Doctor & Staff Management
 
-## 📚 Key Dependencies
+### 7.1 Doctor List
+- [ ] **Search & Filter** by name, specialty, availability.
+- [ ] **Assigned Color**: For global calendar visibility.
 
-- Next.js 15.1.7
-- React 19.0.0
-- Prisma 6.4.0
-- TanStack Query 5.66.7
-- NextAuth.js 4.24.11
-- React Hook Form 7.54.2
-- Zod 3.24.2
-- Tailwind CSS 3.4.17
+### 7.2 Doctor Profile
+- [ ] **Personal Info**: Specialty, experience, contact.
+- [ ] **Availability Settings**: Working hours, off-days.
 
-## 🔧 Common Issues & Solutions
+### 7.3 Staff List & Permissions
+- [ ] **List of Employees**: Receptionists, assistants, managers.
+- [ ] **Role Management**: Adjust staff roles or permissions as needed.
 
-### Prisma Client Issues
-If you encounter Prisma Client issues, try:
-```bash
-pnpm prisma generate
-```
+### 7.4 Payroll & Timesheet
+- [ ] **Time Tracking**: Check-in/check-out for doctors.
+- [ ] **Payroll Report**: Salaries, commissions, pending payments.
 
-### Database Connection Issues
-- Verify your DATABASE_URL in .env
-- Ensure PostgreSQL is running
-- Check network access and firewall settings
+---
 
-## 📄 License
+## 8. Sales & Financial Management
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+### 8.1 Invoice Management
+- [ ] **Invoice List**: View pending, paid, overdue invoices.
+- [ ] **New Invoice Screen**: Generate invoice for treatments.
+- [ ] **Discounts & Offers**: Adjust custom pricing.
 
-## 🤝 Contributing
+### 8.2 Payment Processing
+- [ ] **Online Payment Page**: Integrate with a banking API.
+- [ ] **Manual Payment Entry**: Mark invoices as paid in the system.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### 8.3 Financial Reports
+- [ ] **Revenue Reports**: Track clinic earnings over time.
+- [ ] **Expense Reports**: Monitor purchases & operational costs.
 
-## 🙏 Acknowledgments
+---
 
-- [Next.js](https://nextjs.org/)
-- [Prisma](https://www.prisma.io/)
-- [Supabase](https://supabase.com/)
-- [TanStack Query](https://tanstack.com/query)
+## 9. System Settings & Configuration
 
+### 9.1 Clinic Settings
+- [ ] **Business Info**: Name, logo, contact details.
+- [ ] **Working Hours Config**: Define operating hours.
 
-## Credentials
+### 9.2 Notification Settings
+- [ ] **WhatsApp Reminder Templates**: Define timing & message.
+- [ ] **Email Notification Preferences**: Enable/disable alerts.
 
-### Supabase
-- Project name: POSITIVE-Next-Template
-- DB Password: e9zKY_Km5HbkiiF
-- Anon Public Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3Zmd2ZmhwbWljd3B0dXBqeWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNjY4NDksImV4cCI6MjA1NTY0Mjg0OX0.OiccFqJXdAM6tPIvULA3EaZxtCOsuwhiMugjyGzXNFk
-- Service Role Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3Zmd2ZmhwbWljd3B0dXBqeWtvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA2Njg0OSwiZXhwIjoyMDU1NjQyODQ5fQ.jOx413xoAvBdez9ofCGU8DEIunRI2SU9SXWJsm_IY2Q
-- Project URL: https://swfgvfhpmicwptupjyko.supabase.co
+### 9.3 User Permissions & Audit
+- [ ] **Role Management**: Fine-tune role-based access.
+- [ ] **Data Access Logs**: Monitor who accessed or changed data.
 
-- PRISMA URLs:
-    # Connect to Supabase via connection pooling with Supavisor.
-    DATABASE_URL="postgresql://postgres.swfgvfhpmicwptupjyko:[YOUR-PASSWORD]@aws-0-us-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+---
 
-    # Direct connection to the database. Used for migrations.
-    DIRECT_URL="postgresql://postgres.swfgvfhpmicwptupjyko:[YOUR-PASSWORD]@aws-0-us-west-1.pooler.supabase.com:5432/postgres"
-        
+## 10. Notes & Future Extensions
+
+- **AI-Powered Patient Engagement**: Automated follow-ups, chatbots, insurance integrations (planned for subsequent versions).
+- **Scalability Considerations**: Evaluate microservices architecture vs. monolithic approach as the app grows.
+- **Security & Compliance**: Ensure HIPAA or local equivalent compliance where applicable.
+
+---
+
+### Final Remarks
+
+1. **Start with the foundation**: user creation, role management, and authentication are crucial to secure every other module.  
+2. **Iterate** on each module, ensuring test coverage and consistent UI/UX design.  
+3. **Leverage real-time features** of Supabase to keep the clinic’s data in sync, especially for appointments and inventories.  
+
+> Once the core is stable, you can expand into **AI-driven reminders**, **insurance billing** modules, and **advanced analytics** for a more robust system.
+
+Tech Stack Overview  
+- **Frontend Framework:** React + Next.js (for server-side rendering and optimized performance).  
+- **UI Library:** Tailwind CSS + ShadCN (for pre-built, customizable components).  
+- **Backend (BaaS):** Supabase (for PostgreSQL database, real-time updates, and authentication).  
+- **Deployment:** Vercel (for seamless CI/CD and hosting).  
+
