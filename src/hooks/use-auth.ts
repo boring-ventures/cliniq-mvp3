@@ -49,29 +49,35 @@ export function useAuth() {
 
   const signUp = async (email: string, password: string) => {
     try {
+      console.log("Starting signup process for:", email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) {
+        console.error("Supabase signup error:", error);
         throw error;
       }
 
-      if (data?.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
+      console.log("Signup response:", data);
+
+      if (data?.user) {
+        setUser(data.user);
+        if (data.session) {
+          setSession(data.session);
+          await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          });
+        }
       }
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         user: data.user,
         session: data.session,
-        error: null 
+        error: null,
       };
     } catch (error) {
       console.error("Sign up error:", error);
@@ -79,7 +85,7 @@ export function useAuth() {
         success: false,
         user: null,
         session: null,
-        error
+        error,
       };
     }
   };

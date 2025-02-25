@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,12 +24,26 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import type { SignUpFormProps, SignUpFormData } from "@/types/auth/sign-up";
+import type { SignUpFormData } from "@/types/auth/sign-up";
 import { signUpFormSchema } from "@/types/auth/sign-up";
 import { toast } from "@/components/ui/use-toast";
 import Image from "next/image";
 import { uploadAvatar } from "@/lib/supabase/upload-avatar";
 import { useRouter } from "next/navigation";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import * as z from "zod";
+
+// Add this interface definition
+interface SignUpFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function SignUpForm({ className, ...props }: SignUpFormProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -37,14 +51,15 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const router = useRouter();
+  const supabase = createClientComponentClient();
 
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpFormSchema),
     defaultValues: {
       email: "",
-      username: "",
-      fullName: "",
-      birthDate: new Date(),
+      firstName: "",
+      lastName: "",
+      role: "USER",
       password: "",
       confirmPassword: "",
     },
@@ -66,56 +81,36 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
   async function onSubmit(data: SignUpFormData) {
     try {
       setIsLoading(true);
-      
+
       // First create the auth user
-      const { success, user, session, error } = await signUp(data.email, data.password);
-      
-      if (!success || error || !session) {
-        throw error || new Error("Failed to sign up");
-      }
+      console.log("Attempting to sign up with email:", data.email);
+      const signUpResult = await signUp(data.email, data.password);
+      console.log("Sign up result:", signUpResult);
 
-      if (user) {
-        // Upload avatar if selected
-        let avatarUrl = null;
-        if (avatarFile) {
-          try {
-            avatarUrl = await uploadAvatar(avatarFile, user.id);
-          } catch (error) {
-            console.error("Avatar upload failed:", error);
-            toast({
-              title: "Warning",
-              description: "Failed to upload avatar, you can add it later from your profile.",
-              variant: "default",
-            });
-          }
+      if (!signUpResult?.user) {
+        console.error("No user returned from signUp function");
+
+        // Try to get the current session directly
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log("Current session after signup:", sessionData);
+
+        if (!sessionData.session?.user) {
+          throw new Error("Failed to create user account. Please try again.");
         }
 
-        // Create profile immediately with user ID
-        const response = await fetch("/api/profile", {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            username: data.username,
-            fullName: data.fullName,
-            birthDate: data.birthDate,
-            avatarUrl,
-          }),
-        });
+        // Use the user from the session
+        const userId = sessionData.session.user.id;
+        console.log("Using user ID from session:", userId);
 
-        if (!response.ok) {
-          const result = await response.json();
-          throw new Error(result.error || "Failed to create profile");
-        }
+        // Continue with user creation using this user ID
+        await createUserAndRedirect(userId, data);
+      } else {
+        // Use the user from the signUp result
+        const userId = signUpResult.user.id;
+        console.log("User created with ID:", userId);
 
-        toast({
-          title: "Success",
-          description: "Your account has been created successfully!",
-        });
-
-        router.push('/dashboard');
+        // Continue with user creation
+        await createUserAndRedirect(userId, data);
       }
     } catch (error) {
       console.error("Sign up error:", error);
@@ -129,8 +124,78 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
         description: errorMessage,
         variant: "destructive",
       });
+
+      // If user creation failed but auth user was created, attempt to clean up
+      try {
+        await supabase.auth.signOut();
+      } catch (cleanupError) {
+        console.error("Failed to clean up after failed signup:", cleanupError);
+      }
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  // Helper function to create user and redirect
+  async function createUserAndRedirect(
+    userId: string,
+    formData: SignUpFormData
+  ) {
+    // Upload avatar if selected
+    let avatarUrl = null;
+    if (avatarFile) {
+      try {
+        console.log("Attempting to upload avatar...");
+        avatarUrl = await uploadAvatar(avatarFile, userId);
+        console.log("Avatar uploaded successfully:", avatarUrl);
+      } catch (error) {
+        console.error("Avatar upload failed:", error);
+        // Continue with user creation even if avatar upload fails
+        toast({
+          title: "Warning",
+          description:
+            "Profile created but avatar upload failed. You can add an avatar later.",
+          variant: "destructive",
+        });
+      }
+    }
+
+    // Create user profile
+    try {
+      console.log("Creating user profile with data:", {
+        userId,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        avatarUrl,
+      });
+
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          avatarUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create user profile");
+      }
+
+      console.log("User profile created successfully");
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("User creation error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      throw new Error(`Failed to create user: ${errorMessage}`);
     }
   }
 
@@ -138,143 +203,152 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
     <div className={cn("grid gap-6", className)} {...props}>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative h-24 w-24">
-              {avatarPreview ? (
-                <Image
-                  src={avatarPreview}
-                  alt="Avatar preview"
-                  fill
-                  className="rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted">
-                  <UploadCloud className="h-8 w-8 text-muted-foreground" />
-                </div>
-              )}
-            </div>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="w-full max-w-xs"
-            />
-          </div>
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="role">Role & Settings</TabsTrigger>
+            </TabsList>
 
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input placeholder="name@example.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Username</FormLabel>
-                <FormControl>
-                  <Input placeholder="johndoe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="fullName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="birthDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Date of birth</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
-                      }
-                      initialFocus
+            <TabsContent value="basic" className="space-y-4 pt-4">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative h-24 w-24">
+                  {avatarPreview ? (
+                    <Image
+                      src={avatarPreview}
+                      alt="Avatar preview"
+                      fill
+                      className="rounded-full object-cover"
                     />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted">
+                      <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="w-full max-w-xs"
+                />
+              </div>
 
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <PasswordInput placeholder="********" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="name@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
-                <FormControl>
-                  <PasswordInput placeholder="********" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <Button className="w-full" disabled={isLoading}>
-            Create Account
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <PasswordInput placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <PasswordInput placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+
+            <TabsContent value="role" className="space-y-4 pt-4">
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="USER">User</SelectItem>
+                        <SelectItem value="DOCTOR">Doctor</SelectItem>
+                        <SelectItem value="RECEPTIONIST">
+                          Receptionist
+                        </SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="text-sm text-muted-foreground">
+                <p>
+                  Note: Role selection may be restricted based on administrator
+                  approval.
+                </p>
+                <p className="mt-2">
+                  Default accounts are created with the User role.
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Creating account..." : "Create account"}
           </Button>
         </form>
       </Form>
@@ -297,7 +371,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
           type="button"
           disabled={isLoading}
         >
-          <GithubIcon className="h-4 w-4" /> GitHub
+          <GithubIcon className="h-4 w-4 mr-2" /> GitHub
         </Button>
         <Button
           variant="outline"
@@ -305,7 +379,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
           type="button"
           disabled={isLoading}
         >
-          <FacebookIcon className="h-4 w-4" /> Facebook
+          <FacebookIcon className="h-4 w-4 mr-2" /> Facebook
         </Button>
       </div>
     </div>

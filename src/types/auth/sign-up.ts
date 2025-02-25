@@ -1,19 +1,20 @@
 import { z } from "zod";
 
-export const signUpFormSchema = z
-  .object({
-    email: z.string().email(),
-    username: z.string().min(3).max(20),
-    fullName: z.string().min(2).max(50),
-    birthDate: z.date(),
-    password: z.string().min(8),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+// Define the form schema based on the User model
+export const signUpFormSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string(),
+  firstName: z.string().min(1, { message: "First name is required" }),
+  lastName: z.string().min(1, { message: "Last name is required" }),
+  role: z.enum(["SUPER_ADMIN", "ADMIN", "DOCTOR", "RECEPTIONIST", "USER"]).default("USER"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
 
 export type SignUpFormData = z.infer<typeof signUpFormSchema>;
 
-export type SignUpFormProps = React.HTMLAttributes<HTMLDivElement>;
+export interface SignUpFormProps extends React.HTMLAttributes<HTMLDivElement> {}
