@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -62,6 +62,8 @@ export default function StaffPage() {
     setSearchQuery,
     createStaff,
     isCreatingStaff,
+    updateStaff,
+    isUpdatingStaff,
     deleteStaff,
     isDeletingStaff,
   } = useStaff();
@@ -81,6 +83,7 @@ export default function StaffPage() {
   // Staff form hook
   const {
     staff,
+    setStaff,
     handleInputChange,
     handleNestedInputChange,
     handleDeepNestedInputChange,
@@ -89,6 +92,10 @@ export default function StaffPage() {
   } = useStaffForm();
 
   const { toast } = useToast();
+
+  // Add these state variables for edit functionality
+  const [editStaffModalOpen, setEditStaffModalOpen] = useState(false);
+  const [staffToEdit, setStaffToEdit] = useState<string | null>(null);
 
   // Handle staff creation
   const handleCreateStaff = () => {
@@ -147,6 +154,44 @@ export default function StaffPage() {
     resetForm();
     // @ts-ignore - This is a workaround for the type issue
     staff.password = value;
+  };
+
+  // Function to handle opening the edit modal
+  const handleEditStaff = (staffId: string) => {
+    // Find the staff member to edit
+    const staffMember = staffMembers.find(s => s.id === staffId);
+    if (staffMember) {
+      // Set the form state with the staff member's data
+      setStaff(staffMember);
+      setStaffToEdit(staffId);
+      setEditStaffModalOpen(true);
+    }
+  };
+  
+  // Function to handle the edit submission
+  const handleUpdateStaff = () => {
+    if (!staffToEdit || !staff.name || !staff.email || !staff.role) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please fill in all required fields",
+      });
+      return;
+    }
+    
+    updateStaff(
+      { 
+        id: staffToEdit, 
+        data: staff 
+      },
+      {
+        onSuccess: () => {
+          setEditStaffModalOpen(false);
+          setStaffToEdit(null);
+          resetForm();
+        },
+      }
+    );
   };
 
   // If the user doesn't have permission to view staff
@@ -307,11 +352,15 @@ export default function StaffPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" asChild>
-                              <a href={`/staff/${staff.id}`}>
+                            {canEditStaff && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditStaff(staff.id)}
+                              >
                                 <Edit className="h-4 w-4" />
-                              </a>
-                            </Button>
+                              </Button>
+                            )}
                             {canDeleteStaff && (
                               <Button
                                 variant="ghost"
@@ -711,6 +760,312 @@ export default function StaffPage() {
               disabled={isDeletingStaff}
             >
               {isDeletingStaff ? "Deleting..." : "Delete Staff"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Staff Modal */}
+      <Dialog open={editStaffModalOpen} onOpenChange={setEditStaffModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Staff Member</DialogTitle>
+          </DialogHeader>
+          
+          <Tabs defaultValue="basic">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="contact">Contact</TabsTrigger>
+              <TabsTrigger value="payroll">Payroll</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="basic">
+              <div className="space-y-4 py-2 pb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={staff.name}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={staff.email}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      value={staff.phone}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select
+                      value={staff.role}
+                      onValueChange={(value) => {
+                        handleInputChange({
+                          target: { name: "role", value },
+                        } as any);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DOCTOR">Doctor</SelectItem>
+                        <SelectItem value="RECEPTIONIST">Receptionist</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={staff.status}
+                      onValueChange={(value) => {
+                        handleInputChange({
+                          target: { name: "status", value },
+                        } as any);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="contact">
+              <div className="space-y-4 py-2 pb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Textarea
+                    id="address"
+                    name="address"
+                    value={staff.address}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Emergency Contact</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyName">Name</Label>
+                      <Input
+                        id="emergencyName"
+                        name="name"
+                        value={staff.emergencyContact.name}
+                        onChange={(e) =>
+                          handleNestedInputChange(e, "emergencyContact")
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyRelationship">Relationship</Label>
+                      <Input
+                        id="emergencyRelationship"
+                        name="relationship"
+                        value={staff.emergencyContact.relationship}
+                        onChange={(e) =>
+                          handleNestedInputChange(e, "emergencyContact")
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyPhone">Phone</Label>
+                      <Input
+                        id="emergencyPhone"
+                        name="phone"
+                        value={staff.emergencyContact.phone}
+                        onChange={(e) =>
+                          handleNestedInputChange(e, "emergencyContact")
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="payroll">
+              <div className="space-y-4 py-2 pb-4">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Working Hours</h3>
+                  <div className="grid grid-cols-7 gap-2">
+                    {[
+                      "monday",
+                      "tuesday",
+                      "wednesday",
+                      "thursday",
+                      "friday",
+                      "saturday",
+                      "sunday",
+                    ].map((day) => (
+                      <div key={day} className="space-y-2">
+                        <Label className="capitalize">{day}</Label>
+                        <div className="grid grid-cols-2 gap-1">
+                          <Input
+                            type="time"
+                            value={
+                              staff.workingHours[
+                                day as keyof typeof staff.workingHours
+                              ].start
+                            }
+                            onChange={(e) =>
+                              handleWorkingHoursChange(
+                                day,
+                                "start",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Start"
+                          />
+                          <Input
+                            type="time"
+                            value={
+                              staff.workingHours[
+                                day as keyof typeof staff.workingHours
+                              ].end
+                            }
+                            onChange={(e) =>
+                              handleWorkingHoursChange(day, "end", e.target.value)
+                            }
+                            placeholder="End"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Payroll Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="salary">Salary</Label>
+                      <Input
+                        id="salary"
+                        name="salary"
+                        type="number"
+                        value={staff.payroll.salary.toString()}
+                        onChange={(e) => handleNestedInputChange(e, "payroll")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentFrequency">Payment Frequency</Label>
+                      <Select
+                        value={staff.payroll.paymentFrequency}
+                        onValueChange={(value) => {
+                          handleNestedInputChange(
+                            {
+                              target: { name: "paymentFrequency", value },
+                            } as any,
+                            "payroll"
+                          );
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Weekly">Weekly</SelectItem>
+                          <SelectItem value="Biweekly">Biweekly</SelectItem>
+                          <SelectItem value="Monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mt-4">
+                    <h4 className="font-medium">Bank Details</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="accountName">Account Name</Label>
+                        <Input
+                          id="accountName"
+                          name="accountName"
+                          value={staff.payroll.bankDetails.accountName}
+                          onChange={(e) =>
+                            handleDeepNestedInputChange(
+                              e,
+                              "payroll",
+                              "bankDetails"
+                            )
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="accountNumber">Account Number</Label>
+                        <Input
+                          id="accountNumber"
+                          name="accountNumber"
+                          value={staff.payroll.bankDetails.accountNumber}
+                          onChange={(e) =>
+                            handleDeepNestedInputChange(
+                              e,
+                              "payroll",
+                              "bankDetails"
+                            )
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bankName">Bank Name</Label>
+                        <Input
+                          id="bankName"
+                          name="bankName"
+                          value={staff.payroll.bankDetails.bankName}
+                          onChange={(e) =>
+                            handleDeepNestedInputChange(
+                              e,
+                              "payroll",
+                              "bankDetails"
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditStaffModalOpen(false);
+                setStaffToEdit(null);
+                resetForm();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateStaff} disabled={isUpdatingStaff}>
+              {isUpdatingStaff ? "Updating..." : "Update Staff"}
             </Button>
           </DialogFooter>
         </DialogContent>
