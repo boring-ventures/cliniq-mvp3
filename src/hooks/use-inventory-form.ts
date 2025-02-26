@@ -32,10 +32,12 @@ export function useInventoryForm(existingItem?: InventoryItem) {
 
   // Handle input changes
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
-    
+
     // Handle numeric fields
     if (name === "quantity" || name === "minStock" || name === "price") {
       const numValue = value === "" ? 0 : Number(value);
@@ -61,16 +63,20 @@ export function useInventoryForm(existingItem?: InventoryItem) {
 
   // Reset form to initial state or existing item
   const resetForm = () => {
-    setFormData(existingItem ? {
-      name: existingItem.name,
-      category: existingItem.category,
-      description: existingItem.description || "",
-      quantity: existingItem.stockQuantity || 0,
-      unit: existingItem.unit || "pcs",
-      minStock: existingItem.minStock || 10,
-      supplier: existingItem.supplier || "",
-      price: Number(existingItem.price) || 0,
-    } : initialState);
+    setFormData(
+      existingItem
+        ? {
+            name: existingItem.name,
+            category: existingItem.category,
+            description: existingItem.description || "",
+            quantity: existingItem.stockQuantity || 0,
+            unit: existingItem.unit || "pcs",
+            minStock: existingItem.minStock || 10,
+            supplier: existingItem.supplier || "",
+            price: Number(existingItem.price) || 0,
+          }
+        : initialState
+    );
   };
 
   // Validate form data
@@ -106,10 +112,10 @@ export function useInventoryForm(existingItem?: InventoryItem) {
   // Format numeric values for form inputs to prevent NaN
   const getInputValue = (field: keyof NewInventoryItem) => {
     const value = formData[field];
-    if (typeof value === 'number') {
-      return isNaN(value) ? '' : value.toString();
+    if (typeof value === "number") {
+      return isNaN(value) ? "" : value.toString();
     }
-    return value || '';
+    return value || "";
   };
 
   return {
@@ -121,4 +127,4 @@ export function useInventoryForm(existingItem?: InventoryItem) {
     validateForm,
     getInputValue,
   };
-} 
+}

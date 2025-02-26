@@ -164,4 +164,4 @@ export function useInventoryItem(itemId: string | null) {
     addStock,
     removeStock,
   };
-} 
+}
