@@ -160,7 +160,7 @@ export default function StaffPage() {
   // Function to handle opening the edit modal
   const handleEditStaff = (staffId: string) => {
     // Find the staff member to edit
-    const staffMember = staffMembers.find(s => s.id === staffId);
+    const staffMember = staffMembers.find((s) => s.id === staffId);
     if (staffMember) {
       // Set the form state with the staff member's data
       setStaff(staffMember);
@@ -168,7 +168,7 @@ export default function StaffPage() {
       setEditStaffModalOpen(true);
     }
   };
-  
+
   // Function to handle the edit submission
   const handleUpdateStaff = () => {
     if (!staffToEdit || !staff.name || !staff.email || !staff.role) {
@@ -179,11 +179,11 @@ export default function StaffPage() {
       });
       return;
     }
-    
+
     updateStaff(
-      { 
-        id: staffToEdit, 
-        data: staff 
+      {
+        id: staffToEdit,
+        data: staff,
       },
       {
         onSuccess: () => {
@@ -392,14 +392,14 @@ export default function StaffPage() {
           <DialogHeader>
             <DialogTitle>Add New Staff Member</DialogTitle>
           </DialogHeader>
-          
+
           <Tabs defaultValue="basic">
             <TabsList className="grid w-full grid-cols-3 sticky top-0 bg-background z-10">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
               <TabsTrigger value="contact">Details</TabsTrigger>
               <TabsTrigger value="work">Work & Payroll</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="basic" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -580,8 +580,10 @@ export default function StaffPage() {
             <TabsContent value="work" className="space-y-6 py-2 pb-4">
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Working Hours</h3>
-                <p className="text-sm text-muted-foreground">Set the working days and hours for this staff member.</p>
-                
+                <p className="text-sm text-muted-foreground">
+                  Set the working days and hours for this staff member.
+                </p>
+
                 <div className="space-y-4">
                   {[
                     "monday",
@@ -596,9 +598,13 @@ export default function StaffPage() {
                       <div className="w-28">
                         <Label className="capitalize font-medium">{day}</Label>
                       </div>
-                      
-                      <Switch 
-                        checked={!!staff.workingHours[day as keyof typeof staff.workingHours].start}
+
+                      <Switch
+                        checked={
+                          !!staff.workingHours[
+                            day as keyof typeof staff.workingHours
+                          ].start
+                        }
                         onCheckedChange={(checked) => {
                           if (checked) {
                             // When enabled, set default hours (9-5)
@@ -611,35 +617,71 @@ export default function StaffPage() {
                           }
                         }}
                       />
-                      
+
                       <div className="flex-1 flex items-center gap-2">
                         <Select
-                          value={staff.workingHours[day as keyof typeof staff.workingHours].start}
-                          onValueChange={(value) => handleWorkingHoursChange(day, "start", value)}
-                          disabled={!staff.workingHours[day as keyof typeof staff.workingHours].start}
+                          value={
+                            staff.workingHours[
+                              day as keyof typeof staff.workingHours
+                            ].start
+                          }
+                          onValueChange={(value) =>
+                            handleWorkingHoursChange(day, "start", value)
+                          }
+                          disabled={
+                            !staff.workingHours[
+                              day as keyof typeof staff.workingHours
+                            ].start
+                          }
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="09:00" />
                           </SelectTrigger>
                           <SelectContent>
-                            {["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00"].map((time) => (
+                            {[
+                              "08:00",
+                              "08:30",
+                              "09:00",
+                              "09:30",
+                              "10:00",
+                              "10:30",
+                              "11:00",
+                            ].map((time) => (
                               <SelectItem key={time} value={time}>
                                 {time}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        
+
                         <Select
-                          value={staff.workingHours[day as keyof typeof staff.workingHours].end}
-                          onValueChange={(value) => handleWorkingHoursChange(day, "end", value)}
-                          disabled={!staff.workingHours[day as keyof typeof staff.workingHours].start}
+                          value={
+                            staff.workingHours[
+                              day as keyof typeof staff.workingHours
+                            ].end
+                          }
+                          onValueChange={(value) =>
+                            handleWorkingHoursChange(day, "end", value)
+                          }
+                          disabled={
+                            !staff.workingHours[
+                              day as keyof typeof staff.workingHours
+                            ].start
+                          }
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="17:00" />
                           </SelectTrigger>
                           <SelectContent>
-                            {["16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00"].map((time) => (
+                            {[
+                              "16:00",
+                              "16:30",
+                              "17:00",
+                              "17:30",
+                              "18:00",
+                              "18:30",
+                              "19:00",
+                            ].map((time) => (
                               <SelectItem key={time} value={time}>
                                 {time}
                               </SelectItem>
@@ -650,7 +692,7 @@ export default function StaffPage() {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="flex gap-2 mt-4">
                   <Button
                     variant="outline"
@@ -666,7 +708,7 @@ export default function StaffPage() {
                         saturday: { start: "", end: "" },
                         sunday: { start: "", end: "" },
                       };
-                      
+
                       // Update all working hours at once
                       Object.entries(standardHours).forEach(([day, hours]) => {
                         handleWorkingHoursChange(day, "start", hours.start);
@@ -690,7 +732,7 @@ export default function StaffPage() {
                         saturday: { start: "", end: "" },
                         sunday: { start: "", end: "" },
                       };
-                      
+
                       // Update all working hours at once
                       Object.entries(emptyHours).forEach(([day, hours]) => {
                         handleWorkingHoursChange(day, "start", hours.start);
@@ -852,14 +894,14 @@ export default function StaffPage() {
           <DialogHeader>
             <DialogTitle>Edit Staff Member</DialogTitle>
           </DialogHeader>
-          
+
           <Tabs defaultValue="basic">
             <TabsList className="grid w-full grid-cols-3 sticky top-0 bg-background z-10">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
               <TabsTrigger value="contact">Contact</TabsTrigger>
               <TabsTrigger value="payroll">Work & Payroll</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="basic">
               <div className="space-y-4 py-2 pb-4">
                 <div className="space-y-2">
@@ -908,7 +950,9 @@ export default function StaffPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="DOCTOR">Doctor</SelectItem>
-                        <SelectItem value="RECEPTIONIST">Receptionist</SelectItem>
+                        <SelectItem value="RECEPTIONIST">
+                          Receptionist
+                        </SelectItem>
                         <SelectItem value="ADMIN">Admin</SelectItem>
                         <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                       </SelectContent>
@@ -936,7 +980,7 @@ export default function StaffPage() {
                 </div>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="contact">
               <div className="space-y-4 py-2 pb-4">
                 <div className="space-y-2">
@@ -948,7 +992,7 @@ export default function StaffPage() {
                     onChange={handleInputChange}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <h3 className="text-lg font-medium">Emergency Contact</h3>
                   <div className="grid grid-cols-3 gap-4">
@@ -964,7 +1008,9 @@ export default function StaffPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="emergencyRelationship">Relationship</Label>
+                      <Label htmlFor="emergencyRelationship">
+                        Relationship
+                      </Label>
                       <Input
                         id="emergencyRelationship"
                         name="relationship"
@@ -989,13 +1035,15 @@ export default function StaffPage() {
                 </div>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="payroll">
               <div className="space-y-6 py-2 pb-4">
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Working Hours</h3>
-                  <p className="text-sm text-muted-foreground">Set the working days and hours for this staff member.</p>
-                  
+                  <p className="text-sm text-muted-foreground">
+                    Set the working days and hours for this staff member.
+                  </p>
+
                   <div className="space-y-4">
                     {[
                       "monday",
@@ -1008,11 +1056,17 @@ export default function StaffPage() {
                     ].map((day) => (
                       <div key={day} className="flex items-center gap-4">
                         <div className="w-28">
-                          <Label className="capitalize font-medium">{day}</Label>
+                          <Label className="capitalize font-medium">
+                            {day}
+                          </Label>
                         </div>
-                        
-                        <Switch 
-                          checked={!!staff.workingHours[day as keyof typeof staff.workingHours].start}
+
+                        <Switch
+                          checked={
+                            !!staff.workingHours[
+                              day as keyof typeof staff.workingHours
+                            ].start
+                          }
                           onCheckedChange={(checked) => {
                             if (checked) {
                               // When enabled, set default hours (9-5)
@@ -1025,35 +1079,71 @@ export default function StaffPage() {
                             }
                           }}
                         />
-                        
+
                         <div className="flex-1 flex items-center gap-2">
                           <Select
-                            value={staff.workingHours[day as keyof typeof staff.workingHours].start}
-                            onValueChange={(value) => handleWorkingHoursChange(day, "start", value)}
-                            disabled={!staff.workingHours[day as keyof typeof staff.workingHours].start}
+                            value={
+                              staff.workingHours[
+                                day as keyof typeof staff.workingHours
+                              ].start
+                            }
+                            onValueChange={(value) =>
+                              handleWorkingHoursChange(day, "start", value)
+                            }
+                            disabled={
+                              !staff.workingHours[
+                                day as keyof typeof staff.workingHours
+                              ].start
+                            }
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="09:00" />
                             </SelectTrigger>
                             <SelectContent>
-                              {["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00"].map((time) => (
+                              {[
+                                "08:00",
+                                "08:30",
+                                "09:00",
+                                "09:30",
+                                "10:00",
+                                "10:30",
+                                "11:00",
+                              ].map((time) => (
                                 <SelectItem key={time} value={time}>
                                   {time}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                          
+
                           <Select
-                            value={staff.workingHours[day as keyof typeof staff.workingHours].end}
-                            onValueChange={(value) => handleWorkingHoursChange(day, "end", value)}
-                            disabled={!staff.workingHours[day as keyof typeof staff.workingHours].start}
+                            value={
+                              staff.workingHours[
+                                day as keyof typeof staff.workingHours
+                              ].end
+                            }
+                            onValueChange={(value) =>
+                              handleWorkingHoursChange(day, "end", value)
+                            }
+                            disabled={
+                              !staff.workingHours[
+                                day as keyof typeof staff.workingHours
+                              ].start
+                            }
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="17:00" />
                             </SelectTrigger>
                             <SelectContent>
-                              {["16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00"].map((time) => (
+                              {[
+                                "16:00",
+                                "16:30",
+                                "17:00",
+                                "17:30",
+                                "18:00",
+                                "18:30",
+                                "19:00",
+                              ].map((time) => (
                                 <SelectItem key={time} value={time}>
                                   {time}
                                 </SelectItem>
@@ -1064,7 +1154,7 @@ export default function StaffPage() {
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="flex gap-2 mt-4">
                     <Button
                       variant="outline"
@@ -1080,12 +1170,14 @@ export default function StaffPage() {
                           saturday: { start: "", end: "" },
                           sunday: { start: "", end: "" },
                         };
-                        
+
                         // Update all working hours at once
-                        Object.entries(standardHours).forEach(([day, hours]) => {
-                          handleWorkingHoursChange(day, "start", hours.start);
-                          handleWorkingHoursChange(day, "end", hours.end);
-                        });
+                        Object.entries(standardHours).forEach(
+                          ([day, hours]) => {
+                            handleWorkingHoursChange(day, "start", hours.start);
+                            handleWorkingHoursChange(day, "end", hours.end);
+                          }
+                        );
                       }}
                     >
                       Set Standard Hours
@@ -1104,7 +1196,7 @@ export default function StaffPage() {
                           saturday: { start: "", end: "" },
                           sunday: { start: "", end: "" },
                         };
-                        
+
                         // Update all working hours at once
                         Object.entries(emptyHours).forEach(([day, hours]) => {
                           handleWorkingHoursChange(day, "start", hours.start);
@@ -1131,7 +1223,9 @@ export default function StaffPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="paymentFrequency">Payment Frequency</Label>
+                      <Label htmlFor="paymentFrequency">
+                        Payment Frequency
+                      </Label>
                       <Select
                         value={staff.payroll.paymentFrequency}
                         onValueChange={(value) => {
