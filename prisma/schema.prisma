@@ -119,13 +119,18 @@ model AppointmentChange {
 model InventoryItem {
   id            String   @id @default(uuid())
   name          String
-  category      String? // MEDICATION, TOOL, DISPOSABLE
+  category      String   // Changed from optional to required
   description   String?
   stockQuantity Int      @default(0)
-  reorderLevel  Int      @default(10) // Low stock alert
+  unit          String   @default("pcs")  // Added unit field
+  minStock      Int      @default(10)     // Renamed from reorderLevel
+  supplier      String?  // Added supplier field
+  price         Decimal  @default(0)      // Added price field
+  lastRestocked DateTime? // Added lastRestocked field
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Relations
   usageLogs      UsageLog[]
   purchaseOrders PurchaseOrderItem[]
 }
