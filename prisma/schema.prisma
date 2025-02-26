@@ -29,12 +29,26 @@ model Profile {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  // Staff-specific fields
+  specialty        String?
+  dateOfBirth      DateTime?
+  joinDate         DateTime?
+  phone            String?
+  address          String?
+  notes            String?
+  
+  // Relations
   medicalNotes       MedicalNote[]
   appointments       Appointment[]
   auditLogs          AuditLog[]
   appointmentChanges AppointmentChange[]
   usageLogs          UsageLog[]
   invoices           Invoice[]
+  workingHours       WorkingHours[]
+  emergencyContact   EmergencyContact?
+  qualifications     Qualification[]
+  documents          StaffDocument[]
+  payroll            Payroll?
 }
 
 model Patient {
@@ -207,4 +221,77 @@ model AuditLog {
   createdAt   DateTime @default(now())
 
   user Profile? @relation(fields: [userId], references: [id])
+}
+
+// New models for staff functionality
+
+model WorkingHours {
+  id        String   @id @default(uuid())
+  profileId String
+  dayOfWeek String   // monday, tuesday, etc.
+  startTime String?  // Format: "09:00"
+  endTime   String?  // Format: "17:00"
+  
+  profile   Profile  @relation(fields: [profileId], references: [id])
+  
+  @@unique([profileId, dayOfWeek])
+}
+
+model EmergencyContact {
+  id           String  @id @default(uuid())
+  profileId    String  @unique
+  name         String
+  relationship String?
+  phone        String
+  
+  profile      Profile @relation(fields: [profileId], references: [id])
+}
+
+model Qualification {
+  id           String   @id @default(uuid())
+  profileId    String
+  degree       String
+  institution  String
+  year         String
+  createdAt    DateTime @default(now())
+  
+  profile      Profile  @relation(fields: [profileId], references: [id])
+}
+
+model StaffDocument {
+  id         String   @id @default(uuid())
+  profileId  String
+  name       String
+  fileUrl    String
+  fileType   String?
+  fileSize   String?
+  uploadDate DateTime @default(now())
+  
+  profile    Profile  @relation(fields: [profileId], references: [id])
+}
+
+model Payroll {
+  id               String   @id @default(uuid())
+  profileId        String   @unique
+  salary           Decimal
+  paymentFrequency String   // Weekly, Bi-weekly, Monthly
+  lastPayment      DateTime?
+  
+  // Bank details
+  accountName      String?
+  accountNumber    String?
+  bankName         String?
+  
+  profile          Profile  @relation(fields: [profileId], references: [id])
+  payments         PayrollPayment[]
+}
+
+model PayrollPayment {
+  id        String   @id @default(uuid())
+  payrollId String
+  amount    Decimal
+  paidAt    DateTime @default(now())
+  notes     String?
+  
+  payroll   Payroll  @relation(fields: [payrollId], references: [id])
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,13 +21,8 @@ import {
   UserPlus,
   ArrowLeft,
   Edit,
-  Save,
-  X,
-  Upload,
-  Download,
-  Eye,
-  Briefcase,
-  Stethoscope,
+  Trash2,
+  Filter,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,10 +30,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -46,2143 +41,678 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getRoleBadgeClass } from "@/utils/role-utils";
-import { useState } from "react";
-
-// Add these type definitions at the top of your file
-interface StaffMember {
-  id: string;
-  name: string;
-  role: string;
-  specialty?: string;
-  phone: string;
-  email: string;
-  status: string;
-  avatar: string;
-  initials: string;
-  dateOfBirth: string;
-  joinDate: string;
-  workingHours: {
-    [key: string]: { start: string; end: string };
-  };
-  address: string;
-  emergencyContact: {
-    name: string;
-    relationship: string;
-    phone: string;
-  };
-  qualifications: Array<{
-    id: string;
-    degree: string;
-    institution: string;
-    year: string;
-  }>;
-  appointments: Array<{
-    id: string;
-    date: string;
-    time: string;
-    status: string;
-    patientName: string;
-    reason: string;
-  }>;
-  payroll: {
-    salary: number;
-    paymentFrequency: string;
-    lastPayment: string;
-    bankDetails: {
-      accountName: string;
-      accountNumber: string;
-      bankName: string;
-    };
-  };
-  notes: string;
-  documents: Array<{
-    id: string;
-    name: string;
-    uploadDate: string;
-    size: string;
-  }>;
-}
-
-// Mock staff data
-const staffMembersData: StaffMember[] = [
-  {
-    id: "1",
-    name: "Dr. Sarah Wilson",
-    role: "Doctor",
-    specialty: "General Dentistry",
-    phone: "+1 234-567-8910",
-    email: "sarah.wilson@cliniq.com",
-    status: "active",
-    avatar: "",
-    initials: "SW",
-    dateOfBirth: "1985-06-15",
-    joinDate: "2020-03-10",
-    workingHours: {
-      monday: { start: "09:00", end: "17:00" },
-      tuesday: { start: "09:00", end: "17:00" },
-      wednesday: { start: "09:00", end: "17:00" },
-      thursday: { start: "09:00", end: "17:00" },
-      friday: { start: "09:00", end: "13:00" },
-      saturday: { start: "", end: "" },
-      sunday: { start: "", end: "" },
-    },
-    address: "123 Medical Drive, Suite 101, New York, NY 10001",
-    emergencyContact: {
-      name: "James Wilson",
-      relationship: "Spouse",
-      phone: "+1 234-567-8911",
-    },
-    qualifications: [
-      {
-        id: "q1",
-        degree: "Doctor of Dental Surgery (DDS)",
-        institution: "New York University College of Dentistry",
-        year: "2015",
-      },
-      {
-        id: "q2",
-        degree: "Advanced Certification in Orthodontics",
-        institution: "American Dental Association",
-        year: "2017",
-      },
-    ],
-    appointments: [
-      {
-        id: "a1",
-        patientName: "Emma Davis",
-        date: "2024-03-15",
-        time: "10:00",
-        status: "Scheduled",
-        reason: "",
-      },
-      {
-        id: "a2",
-        patientName: "Michael Rodriguez",
-        date: "2024-03-15",
-        time: "11:30",
-        status: "Scheduled",
-        reason: "",
-      },
-      {
-        id: "a3",
-        patientName: "Sarah Thompson",
-        date: "2024-03-16",
-        time: "14:00",
-        status: "Scheduled",
-        reason: "",
-      },
-    ],
-    payroll: {
-      salary: 120000,
-      paymentFrequency: "Monthly",
-      lastPayment: "2024-02-28",
-      bankDetails: {
-        accountName: "Sarah Wilson",
-        accountNumber: "XXXX-XXXX-XXXX-1234",
-        bankName: "Chase Bank",
-      },
-    },
-    notes:
-      "Dr. Wilson specializes in pediatric dentistry and has excellent patient rapport. She is interested in pursuing further specialization in orthodontics.",
-    documents: [
-      {
-        id: "d1",
-        name: "Medical License.pdf",
-        uploadDate: "2020-03-10",
-        size: "2.1 MB",
-      },
-      {
-        id: "d2",
-        name: "Contract Agreement.pdf",
-        uploadDate: "2020-03-10",
-        size: "1.8 MB",
-      },
-      {
-        id: "d3",
-        name: "Insurance Certificate.pdf",
-        uploadDate: "2023-01-15",
-        size: "1.2 MB",
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "Dr. Michael Chen",
-    role: "Doctor",
-    specialty: "Orthodontics",
-    phone: "+1 234-567-8912",
-    email: "michael.chen@cliniq.com",
-    status: "active",
-    avatar: "",
-    initials: "MC",
-    dateOfBirth: "1980-09-22",
-    joinDate: "2019-05-15",
-    workingHours: {
-      monday: { start: "10:00", end: "18:00" },
-      tuesday: { start: "10:00", end: "18:00" },
-      wednesday: { start: "10:00", end: "18:00" },
-      thursday: { start: "10:00", end: "18:00" },
-      friday: { start: "10:00", end: "14:00" },
-      saturday: { start: "", end: "" },
-      sunday: { start: "", end: "" },
-    },
-    address: "456 Dental Avenue, New York, NY 10002",
-    emergencyContact: {
-      name: "Lisa Chen",
-      relationship: "Spouse",
-      phone: "+1 234-567-8913",
-    },
-    qualifications: [],
-    appointments: [],
-    payroll: {
-      salary: 135000,
-      paymentFrequency: "Monthly",
-      lastPayment: "2024-02-28",
-      bankDetails: {
-        accountName: "Michael Chen",
-        accountNumber: "XXXX-XXXX-XXXX-5678",
-        bankName: "Bank of America",
-      },
-    },
-    notes: "",
-    documents: [],
-  },
-  {
-    id: "3",
-    name: "Jennifer Lopez",
-    role: "Receptionist",
-    specialty: "",
-    phone: "+1 234-567-8914",
-    email: "jennifer.lopez@cliniq.com",
-    status: "active",
-    avatar: "",
-    initials: "JL",
-    dateOfBirth: "1992-04-10",
-    joinDate: "2021-01-05",
-    workingHours: {
-      monday: { start: "08:30", end: "17:30" },
-      tuesday: { start: "08:30", end: "17:30" },
-      wednesday: { start: "08:30", end: "17:30" },
-      thursday: { start: "08:30", end: "17:30" },
-      friday: { start: "08:30", end: "17:30" },
-      saturday: { start: "", end: "" },
-      sunday: { start: "", end: "" },
-    },
-    address: "789 Staff Street, Apt 3B, New York, NY 10003",
-    emergencyContact: {
-      name: "Maria Lopez",
-      relationship: "Mother",
-      phone: "+1 234-567-8915",
-    },
-    qualifications: [],
-    appointments: [],
-    payroll: {
-      salary: 45000,
-      paymentFrequency: "Bi-weekly",
-      lastPayment: "2024-02-28",
-      bankDetails: {
-        accountName: "Jennifer Lopez",
-        accountNumber: "XXXX-XXXX-XXXX-9012",
-        bankName: "Wells Fargo",
-      },
-    },
-    notes:
-      "Jennifer is excellent with patient scheduling and has received multiple commendations for her customer service skills.",
-    documents: [],
-  },
-  {
-    id: "4",
-    name: "Robert Johnson",
-    role: "Dental Assistant",
-    specialty: "",
-    phone: "+1 234-567-8916",
-    email: "robert.johnson@cliniq.com",
-    status: "active",
-    avatar: "",
-    initials: "RJ",
-    dateOfBirth: "1988-11-30",
-    joinDate: "2022-06-15",
-    workingHours: {
-      monday: { start: "09:00", end: "17:00" },
-      tuesday: { start: "09:00", end: "17:00" },
-      wednesday: { start: "09:00", end: "17:00" },
-      thursday: { start: "09:00", end: "17:00" },
-      friday: { start: "09:00", end: "13:00" },
-      saturday: { start: "", end: "" },
-      sunday: { start: "", end: "" },
-    },
-    address: "321 Helper Road, New York, NY 10004",
-    emergencyContact: {
-      name: "Susan Johnson",
-      relationship: "Sister",
-      phone: "+1 234-567-8917",
-    },
-    qualifications: [],
-    appointments: [],
-    payroll: {
-      salary: 52000,
-      paymentFrequency: "Bi-weekly",
-      lastPayment: "2024-02-28",
-      bankDetails: {
-        accountName: "Robert Johnson",
-        accountNumber: "XXXX-XXXX-XXXX-3456",
-        bankName: "Citibank",
-      },
-    },
-    notes: "",
-    documents: [],
-  },
-];
+import { useStaff, NewStaffMember } from "@/hooks/use-staff";
+import { useStaffForm } from "@/hooks/use-staff-form";
+import {
+  useStaffPermissions,
+  StaffPermission,
+} from "@/hooks/use-staff-permissions";
+import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function StaffPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [editedStaff, setEditedStaff] = useState<StaffMember | null>(null);
-  const [editingNotes, setEditingNotes] = useState(false);
-  const [staffNotes, setStaffNotes] = useState("");
-  const [filterRole, setFilterRole] = useState("all");
+  // Get staff data and operations
+  const {
+    staffMembers,
+    isLoading,
+    error,
+    filterRole,
+    setFilterRole,
+    searchQuery,
+    setSearchQuery,
+    createStaff,
+    isCreatingStaff,
+    deleteStaff,
+    isDeletingStaff,
+  } = useStaff();
+
+  // Check permissions
+  const { canViewStaff, canCreateStaff, canEditStaff, canDeleteStaff } =
+    useStaffPermissions();
+
+  // State for the new staff modal
   const [newStaffModalOpen, setNewStaffModalOpen] = useState(false);
-  const [newStaff, setNewStaff] = useState<StaffMember>({
-    id: "",
-    name: "",
-    role: "Doctor",
-    specialty: "",
-    phone: "",
-    email: "",
-    status: "active",
-    avatar: "",
-    initials: "",
-    dateOfBirth: "",
-    joinDate: new Date().toISOString().split("T")[0],
-    workingHours: {
-      monday: { start: "09:00", end: "17:00" },
-      tuesday: { start: "09:00", end: "17:00" },
-      wednesday: { start: "09:00", end: "17:00" },
-      thursday: { start: "09:00", end: "17:00" },
-      friday: { start: "09:00", end: "17:00" },
-      saturday: { start: "", end: "" },
-      sunday: { start: "", end: "" },
-    },
-    address: "",
-    emergencyContact: {
-      name: "",
-      relationship: "",
-      phone: "",
-    },
-    qualifications: [],
-    appointments: [],
-    payroll: {
-      salary: 0,
-      paymentFrequency: "Monthly",
-      lastPayment: "",
-      bankDetails: {
-        accountName: "",
-        accountNumber: "",
-        bankName: "",
-      },
-    },
-    notes: "",
-    documents: [],
-  });
-  const [staffMembers, setStaffMembers] =
-    useState<StaffMember[]>(staffMembersData);
+  const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-  const handleViewStaff = (staff: StaffMember) => {
-    setSelectedStaff(staff);
-    setEditedStaff(JSON.parse(JSON.stringify(staff)));
-    setStaffNotes(staff.notes || "");
-    setProfileOpen(true);
-    setEditMode(false);
-    setEditingNotes(false);
-  };
+  // Staff form hook
+  const {
+    staff,
+    handleInputChange,
+    handleNestedInputChange,
+    handleDeepNestedInputChange,
+    handleWorkingHoursChange,
+    resetForm,
+  } = useStaffForm();
 
-  const handleEditToggle = () => {
-    setEditMode(!editMode);
-    if (!editMode) {
-      // When entering edit mode, create a copy of the staff data
-      setEditedStaff(JSON.parse(JSON.stringify(selectedStaff)));
-    } else {
-      // When canceling edit mode, revert to original data
-      setEditedStaff(JSON.parse(JSON.stringify(selectedStaff)));
-    }
-  };
+  const { toast } = useToast();
 
-  const handleSaveChanges = () => {
-    // In a real app, you would save changes to the backend here
-    // For this demo, we'll just update the local state
-    setSelectedStaff(editedStaff);
-
-    // Update the staff in the staffMembers array
-    const updatedStaff = staffMembers.map((s) =>
-      s.id === editedStaff?.id ? editedStaff : s
-    );
-
-    // Use the updatedStaff variable
-    setStaffMembers(updatedStaff);
-
-    // In a real app, you would update the global state or make an API call
-
-    setEditMode(false);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    section = "basic"
-  ) => {
-    const { name, value } = e.target;
-
-    if (!editedStaff) return; // Add this null check
-
-    if (section === "basic") {
-      setEditedStaff({
-        ...editedStaff,
-        [name]: value,
-      });
-    } else if (section === "emergency") {
-      setEditedStaff({
-        ...editedStaff,
-        emergencyContact: {
-          ...editedStaff.emergencyContact,
-          [name]: value,
-        },
-      });
-    } else if (section === "payroll") {
-      setEditedStaff({
-        ...editedStaff,
-        payroll: {
-          ...editedStaff.payroll,
-          [name]: name === "salary" ? Number(value) : value,
-        },
-      });
-    } else if (section === "bankDetails") {
-      setEditedStaff({
-        ...editedStaff,
-        payroll: {
-          ...editedStaff.payroll,
-          bankDetails: {
-            ...editedStaff.payroll.bankDetails,
-            [name]: value,
-          },
-        },
-      });
-    }
-  };
-
-  const handleWorkingHoursChange = (
-    day: string,
-    field: string,
-    value: string
-  ) => {
-    if (!editedStaff) return;
-    const updatedHours = { ...editedStaff.workingHours };
-    updatedHours[day] = {
-      ...updatedHours[day],
-      [field]: value,
-    };
-
-    setEditedStaff({
-      ...editedStaff,
-      workingHours: updatedHours,
-    });
-  };
-
-  const toggleWorkDay = (day: string) => {
-    if (!editedStaff) return;
-    const updatedHours = { ...editedStaff.workingHours };
-
-    if (updatedHours[day].start && updatedHours[day].end) {
-      // If day is active, deactivate it
-      updatedHours[day] = { start: "", end: "" };
-    } else {
-      // If day is inactive, activate it with default hours
-      updatedHours[day] = { start: "09:00", end: "17:00" };
-    }
-
-    setEditedStaff({
-      ...editedStaff,
-      workingHours: updatedHours,
-    });
-  };
-
-  const handleEditNotes = () => {
-    setEditingNotes(true);
-  };
-
-  const handleCancelNotes = () => {
-    setEditingNotes(false);
-    if (selectedStaff) {
-      setStaffNotes(selectedStaff.notes || "");
-    }
-  };
-
-  const handleSaveNotes = () => {
-    if (!selectedStaff) return;
-
-    const updatedStaff = { ...selectedStaff, notes: staffNotes };
-    setSelectedStaff(updatedStaff);
-
-    // Update the staff in the staffMembers array
-    const updatedStaffMembers = staffMembers.map((s) =>
-      s.id === updatedStaff.id ? updatedStaff : s
-    );
-
-    // Use the updatedStaffMembers variable
-    setStaffMembers(updatedStaffMembers);
-
-    setEditingNotes(false);
-  };
-
-  // Filter staff based on search query and role filter
-
-  // Filter staff based on search query and role filter
-  const filteredStaff = staffMembers.filter((staff) => {
-    const matchesSearch =
-      staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      staff.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      staff.phone.includes(searchQuery);
-
-    const matchesRole = filterRole === "all" || staff.role === filterRole;
-
-    return matchesSearch && matchesRole;
-  });
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "Doctor":
-        return <Stethoscope className="mr-1 h-3 w-3" />;
-      case "Receptionist":
-        return <UserCheck className="mr-1 h-3 w-3" />;
-      case "Dental Assistant":
-        return <Briefcase className="mr-1 h-3 w-3" />;
-      case "Office Manager":
-        return <Users className="mr-1 h-3 w-3" />;
-      default:
-        return null;
-    }
-  };
-
-  const handleNewStaffInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    section: string | null = null,
-    subsection: string | null = null
-  ) => {
-    const { name, value } = e.target;
-
-    if (section === "emergency") {
-      setNewStaff({
-        ...newStaff,
-        emergencyContact: {
-          ...newStaff.emergencyContact,
-          [name]: value,
-        },
-      });
-    } else if (section === "payroll") {
-      if (subsection === "bankDetails") {
-        setNewStaff({
-          ...newStaff,
-          payroll: {
-            ...newStaff.payroll,
-            bankDetails: {
-              ...newStaff.payroll.bankDetails,
-              [name]: value,
-            },
-          },
-        });
-      } else {
-        setNewStaff({
-          ...newStaff,
-          payroll: {
-            ...newStaff.payroll,
-            [name]: name === "salary" ? Number(value) : value,
-          },
-        });
-      }
-    } else {
-      setNewStaff({
-        ...newStaff,
-        [name]: value,
-      });
-    }
-
-    // Generate initials when name changes
-    if (name === "name" && value) {
-      const nameParts = value.split(" ");
-      if (nameParts.length >= 2) {
-        const initials = `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`;
-        setNewStaff((prev) => ({
-          ...prev,
-          initials: initials.toUpperCase(),
-        }));
-      }
-    }
-  };
-
-  const handleNewStaffWorkingHoursChange = (
-    day: string,
-    field: string,
-    value: string
-  ) => {
-    const updatedHours = { ...newStaff.workingHours };
-    updatedHours[day] = {
-      ...updatedHours[day],
-      [field]: value,
-    };
-
-    setNewStaff({
-      ...newStaff,
-      workingHours: updatedHours,
-    });
-  };
-
-  const toggleNewStaffWorkDay = (day: string) => {
-    const updatedHours = { ...newStaff.workingHours };
-
-    if (updatedHours[day].start && updatedHours[day].end) {
-      // If day is active, deactivate it
-      updatedHours[day] = { start: "", end: "" };
-    } else {
-      // If day is inactive, activate it with default hours
-      updatedHours[day] = { start: "09:00", end: "17:00" };
-    }
-
-    setNewStaff({
-      ...newStaff,
-      workingHours: updatedHours,
-    });
-  };
-
+  // Handle staff creation
   const handleCreateStaff = () => {
-    // In a real app, this would send data to an API
-    // For now, we'll just add it to our local array
-    const newStaffWithId = {
-      ...newStaff,
-      id: (staffMembers.length + 1).toString(),
-    };
+    if (!staff.name || !staff.email || !staff.role) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please fill in all required fields",
+      });
+      return;
+    }
 
-    // Add the new staff to our array
-    staffMembers.push(newStaffWithId);
+    // Cast to NewStaffMember to ensure password is included
+    const newStaff = staff as NewStaffMember;
 
-    // Reset form and close modal
-    setNewStaff({
-      id: "",
-      name: "",
-      role: "Doctor",
-      specialty: "",
-      phone: "",
-      email: "",
-      status: "active",
-      avatar: "",
-      initials: "",
-      dateOfBirth: "",
-      joinDate: new Date().toISOString().split("T")[0],
-      workingHours: {
-        monday: { start: "09:00", end: "17:00" },
-        tuesday: { start: "09:00", end: "17:00" },
-        wednesday: { start: "09:00", end: "17:00" },
-        thursday: { start: "09:00", end: "17:00" },
-        friday: { start: "09:00", end: "17:00" },
-        saturday: { start: "", end: "" },
-        sunday: { start: "", end: "" },
+    createStaff(newStaff, {
+      onSuccess: () => {
+        setNewStaffModalOpen(false);
+        resetForm();
+        toast({
+          title: "Success",
+          description: "Staff member created successfully",
+        });
       },
-      address: "",
-      emergencyContact: {
-        name: "",
-        relationship: "",
-        phone: "",
-      },
-      qualifications: [],
-      appointments: [],
-      payroll: {
-        salary: 0,
-        paymentFrequency: "Monthly",
-        lastPayment: "",
-        bankDetails: {
-          accountName: "",
-          accountNumber: "",
-          bankName: "",
-        },
-      },
-      notes: "",
-      documents: [],
     });
-
-    setNewStaffModalOpen(false);
-
-    // Force a re-render
-    setSearchQuery("");
   };
 
-  const handleAvatarUpload = (file: File) => {
-    if (!editedStaff) return;
-
-    const reader = new FileReader();
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      if (e.target && e.target.result && editedStaff) {
-        setEditedStaff({
-          ...editedStaff,
-          avatar: e.target.result as string,
-        });
-      }
-    };
-    reader.readAsDataURL(file);
+  // Handle staff deletion
+  const handleDeleteStaff = (id: string, name: string) => {
+    setStaffToDelete({ id, name });
+    setDeleteConfirmModalOpen(true);
   };
 
-  const handleNewStaffAvatarUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      if (e.target && e.target.result) {
-        setNewStaff({
-          ...newStaff,
-          avatar: e.target.result as string,
-        });
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleBrowseClick = () => {
-    // Create a hidden file input and trigger it
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = ".pdf,.doc,.docx,.jpg,.png";
-    fileInput.onchange = (e) => {
-      const target = e.target as HTMLInputElement;
-      if (target.files && target.files[0]) {
-        // Handle the selected file
-        // In a real app, you would upload this to your backend
-        console.log("Selected file:", target.files[0]);
-
-        // For demo purposes, you could add it to the documents array
-        if (selectedStaff && editedStaff) {
-          const newDoc = {
-            id: `d${editedStaff.documents.length + 1}`,
-            name: target.files[0].name,
-            uploadDate: new Date().toISOString().split("T")[0],
-            size: `${(target.files[0].size / 1024).toFixed(1)} KB`,
-          };
-
-          setEditedStaff({
-            ...editedStaff,
-            documents: [...editedStaff.documents, newDoc],
+  const confirmDeleteStaff = () => {
+    if (staffToDelete) {
+      deleteStaff(staffToDelete.id, {
+        onSuccess: () => {
+          setDeleteConfirmModalOpen(false);
+          setStaffToDelete(null);
+          toast({
+            title: "Success",
+            description: "Staff member deleted successfully",
           });
-        }
-      }
-    };
-    fileInput.click();
+        },
+      });
+    }
   };
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Staff Management</h1>
-        <Button onClick={() => setNewStaffModalOpen(true)}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add New Staff
+  // Handle password input change separately
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    // Use type assertion to tell TypeScript that we're working with NewStaffMember
+    const newStaff = { ...staff } as NewStaffMember;
+    newStaff.password = value;
+    // Update the staff state
+    resetForm();
+    // @ts-ignore - This is a workaround for the type issue
+    staff.password = value;
+  };
+
+  // If the user doesn't have permission to view staff
+  if (!canViewStaff) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh]">
+        <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+        <p className="text-muted-foreground mb-6">
+          You don't have permission to view the staff management page.
+        </p>
+        <Button asChild>
+          <a href="/dashboard">Return to Dashboard</a>
         </Button>
       </div>
+    );
+  }
 
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-black text-white">
-          <CardContent className="flex items-center justify-between p-6">
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">Total Staff</span>
-              <span className="text-2xl font-bold mt-1">12</span>
-            </div>
-            <div className="bg-gray-800 p-3 rounded-full">
-              <Users className="h-6 w-6" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-black text-white">
-          <CardContent className="flex items-center justify-between p-6">
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">Doctors</span>
-              <span className="text-2xl font-bold mt-1">4</span>
-            </div>
-            <div className="bg-gray-800 p-3 rounded-full">
-              <Stethoscope className="h-6 w-6" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-black text-white">
-          <CardContent className="flex items-center justify-between p-6">
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">Support Staff</span>
-              <span className="text-2xl font-bold mt-1">8</span>
-            </div>
-            <div className="bg-gray-800 p-3 rounded-full">
-              <Briefcase className="h-6 w-6" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex items-center gap-2 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="search"
-            placeholder="Search staff..."
-            className="pl-10 w-full"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+  return (
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Staff Management
+          </h1>
+          <p className="text-muted-foreground">
+            Manage your organization's staff members
+          </p>
         </div>
-        <Select value={filterRole} onValueChange={setFilterRole}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
-            <SelectItem value="Doctor">Doctors</SelectItem>
-            <SelectItem value="Receptionist">Receptionists</SelectItem>
-            <SelectItem value="Dental Assistant">Dental Assistants</SelectItem>
-          </SelectContent>
-        </Select>
+        {canCreateStaff && (
+          <Button onClick={() => setNewStaffModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Add Staff
+          </Button>
+        )}
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Patients Seen</TableHead>
-                <TableHead>Hours Worked</TableHead>
-                <TableHead>Revenue Generated</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStaff.map((staff) => (
-                <TableRow key={staff.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={staff.avatar} alt={staff.name} />
-                        <AvatarFallback>{staff.initials}</AvatarFallback>
-                      </Avatar>
-                      {staff.name}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getRoleBadgeClass(staff.role)}>
-                      {getRoleIcon(staff.role)}
-                      {staff.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {staff.role === "Doctor" ? "248" : "-"}
-                    {staff.role === "Doctor" && (
-                      <div className="text-xs text-gray-400">This month</div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {staff.role === "Doctor" ? "164" : "-"}
-                    {staff.role === "Doctor" && (
-                      <div className="text-xs text-gray-400">This month</div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {staff.role === "Doctor" ? "$24,800" : "-"}
-                    {staff.role === "Doctor" && (
-                      <div className="text-xs text-gray-400">This month</div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewStaff(staff)}
-                      className="text-white bg-black hover:bg-gray-800 rounded-md px-4 py-1 text-xs font-medium"
-                    >
-                      <Eye className="mr-1 h-3 w-3" />
-                      View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Staff Profile Modal */}
-      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-black text-white border-gray-800">
-          <DialogHeader className="flex flex-row items-center sticky top-0 bg-black z-10 pb-4 border-b border-gray-800">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="mr-2 text-white"
-              onClick={() => setProfileOpen(false)}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <DialogTitle className="text-xl">Staff Profile</DialogTitle>
-          </DialogHeader>
-
-          {selectedStaff && (
-            <Tabs defaultValue="details" className="w-full">
-              <TabsList className="grid grid-cols-4 mb-6 sticky top-14 bg-black z-10 pt-4">
-                <TabsTrigger
-                  value="details"
-                  className="data-[state=active]:bg-white data-[state=active]:text-black"
-                >
-                  Personal Details
-                </TabsTrigger>
-                <TabsTrigger
-                  value="schedule"
-                  className="data-[state=active]:bg-white data-[state=active]:text-black"
-                >
-                  Schedule & Availability
-                </TabsTrigger>
-                <TabsTrigger
-                  value="documents"
-                  className="data-[state=active]:bg-white data-[state=active]:text-black"
-                >
-                  Documents
-                </TabsTrigger>
-                <TabsTrigger
-                  value="payroll"
-                  className="data-[state=active]:bg-white data-[state=active]:text-black"
-                >
-                  Payroll & Finance
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="details" className="space-y-6">
-                <div className="border rounded-lg p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold">Basic Information</h3>
-                    {editMode ? (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleEditToggle}
-                        >
-                          <X className="mr-2 h-4 w-4" />
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSaveChanges}>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleEditToggle}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Details
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col items-center mb-6">
-                    <div className="relative mb-4">
-                      <Avatar className="h-24 w-24">
-                        <AvatarImage
-                          src={
-                            editMode && editedStaff
-                              ? editedStaff.avatar
-                              : selectedStaff.avatar
-                          }
-                          alt={selectedStaff.name}
-                        />
-                        <AvatarFallback className="text-2xl">
-                          {selectedStaff.initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      {editMode && (
-                        <div className="absolute bottom-0 right-0">
-                          <label
-                            htmlFor="avatar-upload"
-                            className="flex items-center justify-center h-8 w-8 rounded-full bg-white text-black cursor-pointer shadow-md"
-                          >
-                            <Upload className="h-4 w-4" />
-                            <input
-                              id="avatar-upload"
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) =>
-                                e.target.files?.[0] &&
-                                handleAvatarUpload(e.target.files[0])
-                              }
-                            />
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                    <h2 className="text-xl font-bold">{selectedStaff.name}</h2>
-                    <Badge className={getRoleBadgeClass(selectedStaff.role)}>
-                      {getRoleIcon(selectedStaff.role)}
-                      {selectedStaff.role}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Full Name
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="name"
-                          value={editedStaff.name}
-                          onChange={(e) => handleInputChange(e)}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Role
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Select
-                          name="role"
-                          value={editedStaff.role}
-                          onValueChange={(value) =>
-                            setEditedStaff({ ...editedStaff, role: value })
-                          }
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Doctor">Doctor</SelectItem>
-                            <SelectItem value="Receptionist">
-                              Receptionist
-                            </SelectItem>
-                            <SelectItem value="Dental Assistant">
-                              Dental Assistant
-                            </SelectItem>
-                            <SelectItem value="Office Manager">
-                              Office Manager
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                    {selectedStaff.role === "Doctor" && (
-                      <div>
-                        <Label className="text-sm font-medium text-gray-400 mb-1">
-                          Specialty
-                        </Label>
-                        {editMode && editedStaff && (
-                          <Input
-                            name="specialty"
-                            value={editedStaff.specialty}
-                            onChange={(e) => handleInputChange(e)}
-                            className="mt-1"
-                          />
-                        )}
-                      </div>
-                    )}
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Date of Birth
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="dateOfBirth"
-                          type="date"
-                          value={editedStaff.dateOfBirth}
-                          onChange={(e) => handleInputChange(e)}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Join Date
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="joinDate"
-                          type="date"
-                          value={editedStaff.joinDate}
-                          onChange={(e) => handleInputChange(e)}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Phone
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="phone"
-                          value={editedStaff.phone}
-                          onChange={(e) => handleInputChange(e)}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Email
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="email"
-                          type="email"
-                          value={editedStaff.email}
-                          onChange={(e) => handleInputChange(e)}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                    <div className="col-span-2">
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Address
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="address"
-                          value={editedStaff.address}
-                          onChange={(e) => handleInputChange(e)}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                  </div>
+      <div className="grid gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search staff..."
+                    className="pl-8 w-[250px]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                 </div>
+                <Select value={filterRole} onValueChange={setFilterRole}>
+                  <SelectTrigger className="w-[180px]">
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Filter by role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="DOCTOR">Doctor</SelectItem>
+                    <SelectItem value="RECEPTIONIST">Receptionist</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="flex gap-1">
+                  <Users className="h-3.5 w-3.5" />
+                  <span>{staffMembers.length} Staff</span>
+                </Badge>
+                <Badge variant="outline" className="flex gap-1">
+                  <UserCheck className="h-3.5 w-3.5" />
+                  <span>
+                    {staffMembers.filter((s) => s.status === "active").length}{" "}
+                    Active
+                  </span>
+                </Badge>
+              </div>
+            </div>
 
-                <div className="border rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-6">Emergency Contact</h3>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Contact Name
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="name"
-                          value={editedStaff.emergencyContact.name}
-                          onChange={(e) => handleInputChange(e, "emergency")}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Relationship
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="relationship"
-                          value={editedStaff.emergencyContact.relationship}
-                          onChange={(e) => handleInputChange(e, "emergency")}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Phone
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="phone"
-                          value={editedStaff.emergencyContact.phone}
-                          onChange={(e) => handleInputChange(e, "emergency")}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {selectedStaff.role === "Doctor" && (
-                  <div className="border rounded-lg p-6">
-                    <h3 className="text-xl font-bold mb-6">Qualifications</h3>
-                    {selectedStaff.qualifications &&
-                    selectedStaff.qualifications.length > 0 ? (
-                      <div className="space-y-4">
-                        {selectedStaff.qualifications.map((qualification) => (
-                          <div
-                            key={qualification.id}
-                            className="border rounded-lg p-4"
-                          >
-                            <h4 className="font-semibold">
-                              {qualification.degree}
-                            </h4>
-                            <p className="text-sm text-gray-400 mt-1">
-                              {qualification.institution} • {qualification.year}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-center text-gray-500 py-4">
-                        No qualifications added yet.
-                      </p>
-                    )}
-                    {editMode && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-4"
-                        onClick={() => {
-                          // In a real app, this would open a form to add a qualification
-                          console.log("Add qualification");
-                        }}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Qualification
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                <div className="border rounded-lg p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold">Notes</h3>
-                    {!editingNotes ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleEditNotes}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Notes
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleCancelNotes}
-                        >
-                          <X className="mr-2 h-4 w-4" />
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSaveNotes}>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {editingNotes ? (
-                    <Textarea
-                      value={staffNotes}
-                      onChange={(e) => setStaffNotes(e.target.value)}
-                      className="min-h-[100px] bg-gray-800 text-white"
-                    />
+            {isLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8 text-destructive">
+                Error loading staff data. Please try again.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {staffMembers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        No staff members found.{" "}
+                        {canCreateStaff &&
+                          "Add your first staff member to get started."}
+                      </TableCell>
+                    </TableRow>
                   ) : (
-                    <p className="p-3 border rounded-md bg-gray-800">
-                      {selectedStaff.notes || "No notes available."}
-                    </p>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="schedule" className="space-y-6">
-                <div className="border rounded-lg p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold">Working Hours</h3>
-                    {editMode ? (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            // Reset working hours to original state
-                            if (editedStaff && selectedStaff) {
-                              setEditedStaff({
-                                ...editedStaff,
-                                workingHours: selectedStaff.workingHours,
-                              });
-                              handleEditToggle();
+                    staffMembers.map((staff) => (
+                      <TableRow key={staff.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarImage src={staff.avatar} />
+                              <AvatarFallback>{staff.initials}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">{staff.name}</div>
+                              {staff.specialty && (
+                                <div className="text-sm text-gray-500">
+                                  {staff.specialty}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              staff.role === "SUPER_ADMIN"
+                                ? "default"
+                                : staff.role === "ADMIN"
+                                  ? "secondary"
+                                  : staff.role === "DOCTOR"
+                                    ? "outline"
+                                    : "outline"
                             }
-                          }}
-                        >
-                          <X className="mr-2 h-4 w-4" />
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSaveChanges}>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleEditToggle}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Hours
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="space-y-6">
-                    {editMode && editedStaff
-                      ? Object.entries(editedStaff.workingHours).map(
-                          ([day, hours]) => (
-                            <div key={day} className="flex items-center gap-4">
-                              <div className="w-28 font-medium capitalize text-white">
-                                {day}
-                              </div>
-                              <div className="flex items-center">
-                                <button
-                                  type="button"
-                                  className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white cursor-pointer"
-                                  onClick={() => editMode && toggleWorkDay(day)}
-                                  aria-pressed={!!(hours.start && hours.end)}
-                                >
-                                  <span
-                                    className={`${
-                                      hours.start && hours.end
-                                        ? "bg-white translate-x-6"
-                                        : "bg-gray-400 translate-x-1"
-                                    } inline-block h-4 w-4 transform rounded-full transition-transform`}
-                                  />
-                                </button>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <select
-                                  className={`border rounded p-2 w-28 ${
-                                    (!hours.start && !hours.end) || !editMode
-                                      ? "bg-gray-900 text-gray-500 cursor-not-allowed"
-                                      : "bg-black text-white"
-                                  }`}
-                                  value={hours.start || "09:00"}
-                                  onChange={(e) =>
-                                    editMode &&
-                                    handleWorkingHoursChange(
-                                      day,
-                                      "start",
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={
-                                    (!hours.start && !hours.end) || !editMode
-                                  }
-                                >
-                                  <option value="08:00">08:00</option>
-                                  <option value="08:30">08:30</option>
-                                  <option value="09:00">09:00</option>
-                                  <option value="09:30">09:30</option>
-                                  <option value="10:00">10:00</option>
-                                  <option value="10:30">10:30</option>
-                                  <option value="11:00">11:00</option>
-                                  <option value="11:30">11:30</option>
-                                  <option value="12:00">12:00</option>
-                                </select>
-
-                                <span className="text-gray-400">to</span>
-
-                                <select
-                                  className={`border rounded p-2 w-28 ${
-                                    (!hours.start && !hours.end) || !editMode
-                                      ? "bg-gray-900 text-gray-500 cursor-not-allowed"
-                                      : "bg-black text-white"
-                                  }`}
-                                  value={hours.end || "17:00"}
-                                  onChange={(e) =>
-                                    editMode &&
-                                    handleWorkingHoursChange(
-                                      day,
-                                      "end",
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={!hours.start && !hours.end}
-                                >
-                                  <option value="16:00">16:00</option>
-                                  <option value="16:30">16:30</option>
-                                  <option value="17:00">17:00</option>
-                                  <option value="17:30">17:30</option>
-                                  <option value="18:00">18:00</option>
-                                  <option value="18:30">18:30</option>
-                                  <option value="19:00">19:00</option>
-                                  <option value="19:30">19:30</option>
-                                  <option value="20:00">20:00</option>
-                                </select>
-                              </div>
-                            </div>
-                          )
-                        )
-                      : selectedStaff &&
-                        Object.entries(selectedStaff.workingHours).map(
-                          ([day, hours]) => (
-                            <div key={day} className="flex items-center gap-4">
-                              <div className="w-28 font-medium capitalize text-white">
-                                {day}
-                              </div>
-                              <div className="flex items-center">
-                                <button
-                                  type="button"
-                                  className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white cursor-pointer"
-                                  onClick={() => editMode && toggleWorkDay(day)}
-                                  aria-pressed={!!(hours.start && hours.end)}
-                                >
-                                  <span
-                                    className={`${
-                                      hours.start && hours.end
-                                        ? "bg-white translate-x-6"
-                                        : "bg-gray-400 translate-x-1"
-                                    } inline-block h-4 w-4 transform rounded-full transition-transform`}
-                                  />
-                                </button>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <select
-                                  className={`border rounded p-2 w-28 ${
-                                    (!hours.start && !hours.end) || !editMode
-                                      ? "bg-gray-900 text-gray-500 cursor-not-allowed"
-                                      : "bg-black text-white"
-                                  }`}
-                                  value={hours.start || "09:00"}
-                                  onChange={(e) =>
-                                    editMode &&
-                                    handleWorkingHoursChange(
-                                      day,
-                                      "start",
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={
-                                    (!hours.start && !hours.end) || !editMode
-                                  }
-                                >
-                                  <option value="08:00">08:00</option>
-                                  <option value="08:30">08:30</option>
-                                  <option value="09:00">09:00</option>
-                                  <option value="09:30">09:30</option>
-                                  <option value="10:00">10:00</option>
-                                  <option value="10:30">10:30</option>
-                                  <option value="11:00">11:00</option>
-                                  <option value="11:30">11:30</option>
-                                  <option value="12:00">12:00</option>
-                                </select>
-
-                                <span className="text-gray-400">to</span>
-
-                                <select
-                                  className={`border rounded p-2 w-28 ${
-                                    (!hours.start && !hours.end) || !editMode
-                                      ? "bg-gray-900 text-gray-500 cursor-not-allowed"
-                                      : "bg-black text-white"
-                                  }`}
-                                  value={hours.end || "17:00"}
-                                  onChange={(e) =>
-                                    editMode &&
-                                    handleWorkingHoursChange(
-                                      day,
-                                      "end",
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={!hours.start && !hours.end}
-                                >
-                                  <option value="16:00">16:00</option>
-                                  <option value="16:30">16:30</option>
-                                  <option value="17:00">17:00</option>
-                                  <option value="17:30">17:30</option>
-                                  <option value="18:00">18:00</option>
-                                  <option value="18:30">18:30</option>
-                                  <option value="19:00">19:00</option>
-                                  <option value="19:30">19:30</option>
-                                  <option value="20:00">20:00</option>
-                                </select>
-                              </div>
-                            </div>
-                          )
-                        )}
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="documents" className="space-y-6">
-                <div className="border rounded-lg p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold">Documents</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleBrowseClick}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Document
-                    </Button>
-                  </div>
-
-                  <div className="space-y-4">
-                    {selectedStaff.documents &&
-                    selectedStaff.documents.length > 0 ? (
-                      selectedStaff.documents.map((document) => (
-                        <div
-                          key={document.id}
-                          className="flex justify-between items-center border rounded-lg p-4"
-                        >
-                          <div>
-                            <h4 className="font-semibold">{document.name}</h4>
-                            <p className="text-sm text-gray-400">
-                              Uploaded on{" "}
-                              {format(
-                                new Date(document.uploadDate),
-                                "MMMM d, yyyy"
-                              )}{" "}
-                              • {document.size}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                // In a real app, this would download the document
-                                console.log(`Download ${document.name}`);
-                              }}
-                            >
-                              <Download className="mr-2 h-4 w-4" />
-                              Download
+                          >
+                            {staff.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{staff.email}</TableCell>
+                        <TableCell>{staff.phone}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              staff.status === "active"
+                                ? "default"
+                                : "destructive"
+                            }
+                            className={
+                              staff.status === "active" ? "bg-green-500" : ""
+                            }
+                          >
+                            {staff.status === "active" ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" asChild>
+                              <a href={`/staff/${staff.id}`}>
+                                <Edit className="h-4 w-4" />
+                              </a>
                             </Button>
+                            {canDeleteStaff && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  handleDeleteStaff(staff.id, staff.name)
+                                }
+                                disabled={isDeletingStaff}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-center text-gray-500 py-4">
-                        No documents uploaded yet.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="payroll" className="space-y-6">
-                <div className="border rounded-lg p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold">Payroll Information</h3>
-                    {editMode ? (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleEditToggle}
-                        >
-                          <X className="mr-2 h-4 w-4" />
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSaveChanges}>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleEditToggle}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Details
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Annual Salary
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="salary"
-                          type="number"
-                          value={editedStaff.payroll.salary}
-                          onChange={(e) => handleInputChange(e, "payroll")}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Payment Frequency
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Select
-                          value={editedStaff.payroll.paymentFrequency}
-                          onValueChange={(value) =>
-                            setEditedStaff({
-                              ...editedStaff,
-                              payroll: {
-                                ...editedStaff.payroll,
-                                paymentFrequency: value,
-                              },
-                            })
-                          }
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select frequency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Weekly">Weekly</SelectItem>
-                            <SelectItem value="Bi-weekly">Bi-weekly</SelectItem>
-                            <SelectItem value="Monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Last Payment Date
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="lastPayment"
-                          type="date"
-                          value={editedStaff.payroll.lastPayment}
-                          onChange={(e) => handleInputChange(e, "payroll")}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <h4 className="font-semibold mb-4">Bank Details</h4>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Account Name
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="accountName"
-                          value={editedStaff.payroll.bankDetails.accountName}
-                          onChange={(e) => handleInputChange(e, "bankDetails")}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Bank Name
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="bankName"
-                          value={editedStaff.payroll.bankDetails.bankName}
-                          onChange={(e) => handleInputChange(e, "bankDetails")}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Account Number
-                      </Label>
-                      {editMode && editedStaff && (
-                        <Input
-                          name="accountNumber"
-                          value={editedStaff.payroll.bankDetails.accountNumber}
-                          onChange={(e) => handleInputChange(e, "bankDetails")}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-6">Payment History</h3>
-                  <p className="text-center text-gray-500 py-4">
-                    Payment history will be displayed here.
-                  </p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
-        </DialogContent>
-      </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* New Staff Modal */}
       <Dialog open={newStaffModalOpen} onOpenChange={setNewStaffModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-black text-white border-gray-800">
-          <DialogHeader className="flex flex-row items-center sticky top-0 bg-black z-10 pb-4 border-b border-gray-800">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="mr-2 text-white"
-              onClick={() => setNewStaffModalOpen(false)}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <DialogTitle className="text-xl">Add New Staff</DialogTitle>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Add New Staff Member</DialogTitle>
           </DialogHeader>
-
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid grid-cols-4 mb-6 sticky top-14 bg-black z-10 pt-4">
-              <TabsTrigger
-                value="details"
-                className="data-[state=active]:bg-white data-[state=active]:text-black"
-              >
-                Personal Details
-              </TabsTrigger>
-              <TabsTrigger
-                value="schedule"
-                className="data-[state=active]:bg-white data-[state=active]:text-black"
-              >
-                Schedule & Availability
-              </TabsTrigger>
-              <TabsTrigger
-                value="documents"
-                className="data-[state=active]:bg-white data-[state=active]:text-black"
-              >
-                Documents
-              </TabsTrigger>
-              <TabsTrigger
-                value="payroll"
-                className="data-[state=active]:bg-white data-[state=active]:text-black"
-              >
-                Payroll & Finance
-              </TabsTrigger>
+          <Tabs defaultValue="basic">
+            <TabsList className="grid grid-cols-3 mb-4">
+              <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="work">Work & Payroll</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="space-y-6">
-              <div className="border rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-6">Basic Information</h3>
-
-                <div className="flex flex-col items-center mb-6">
-                  <div className="relative mb-4">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage
-                        src={newStaff.avatar}
-                        alt={newStaff.name || "New Staff"}
-                      />
-                      <AvatarFallback className="text-2xl">
-                        {newStaff.initials || "NS"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute bottom-0 right-0">
-                      <label
-                        htmlFor="new-avatar-upload"
-                        className="flex items-center justify-center h-8 w-8 rounded-full bg-white text-black cursor-pointer shadow-md"
-                      >
-                        <Upload className="h-4 w-4" />
-                        <input
-                          id="new-avatar-upload"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) =>
-                            e.target.files?.[0] &&
-                            handleNewStaffAvatarUpload(e.target.files[0])
-                          }
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  {newStaff.name && (
-                    <h2 className="text-xl font-bold">{newStaff.name}</h2>
-                  )}
-                  {newStaff.role && (
-                    <Badge className={getRoleBadgeClass(newStaff.role)}>
-                      {getRoleIcon(newStaff.role)}
-                      {newStaff.role}
-                    </Badge>
-                  )}
+            <TabsContent value="basic" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={staff.name}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Full Name*
-                    </Label>
-                    <Input
-                      name="name"
-                      value={newStaff.name}
-                      onChange={(e) => handleNewStaffInputChange(e)}
-                      className="mt-1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Role*
-                    </Label>
-                    <Select
-                      value={newStaff.role}
-                      onValueChange={(value) =>
-                        setNewStaff({ ...newStaff, role: value })
-                      }
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Doctor">Doctor</SelectItem>
-                        <SelectItem value="Receptionist">
-                          Receptionist
-                        </SelectItem>
-                        <SelectItem value="Dental Assistant">
-                          Dental Assistant
-                        </SelectItem>
-                        <SelectItem value="Office Manager">
-                          Office Manager
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {newStaff.role === "Doctor" && (
-                    <div>
-                      <Label className="text-sm font-medium text-gray-400 mb-1">
-                        Specialty
-                      </Label>
-                      <Input
-                        name="specialty"
-                        value={newStaff.specialty}
-                        onChange={(e) => handleNewStaffInputChange(e)}
-                        className="mt-1"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Date of Birth
-                    </Label>
-                    <Input
-                      name="dateOfBirth"
-                      type="date"
-                      value={newStaff.dateOfBirth}
-                      onChange={(e) => handleNewStaffInputChange(e)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Join Date*
-                    </Label>
-                    <Input
-                      name="joinDate"
-                      type="date"
-                      value={newStaff.joinDate}
-                      onChange={(e) => handleNewStaffInputChange(e)}
-                      className="mt-1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Phone*
-                    </Label>
-                    <Input
-                      name="phone"
-                      value={newStaff.phone}
-                      onChange={(e) => handleNewStaffInputChange(e)}
-                      className="mt-1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Email*
-                    </Label>
-                    <Input
-                      name="email"
-                      type="email"
-                      value={newStaff.email}
-                      onChange={(e) => handleNewStaffInputChange(e)}
-                      className="mt-1"
-                      required
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Address
-                    </Label>
-                    <Input
-                      name="address"
-                      value={newStaff.address}
-                      onChange={(e) => handleNewStaffInputChange(e)}
-                      className="mt-1"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role *</Label>
+                  <Select
+                    value={staff.role}
+                    onValueChange={(value) => {
+                      handleInputChange({
+                        target: { name: "role", value },
+                      } as any);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DOCTOR">Doctor</SelectItem>
+                      <SelectItem value="RECEPTIONIST">Receptionist</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                      <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-
-              <div className="border rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-6">Emergency Contact</h3>
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Contact Name
-                    </Label>
-                    <Input
-                      name="name"
-                      value={newStaff.emergencyContact.name}
-                      onChange={(e) =>
-                        handleNewStaffInputChange(e, "emergency")
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Relationship
-                    </Label>
-                    <Input
-                      name="relationship"
-                      value={newStaff.emergencyContact.relationship}
-                      onChange={(e) =>
-                        handleNewStaffInputChange(e, "emergency")
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Phone
-                    </Label>
-                    <Input
-                      name="phone"
-                      value={newStaff.emergencyContact.phone}
-                      onChange={(e) =>
-                        handleNewStaffInputChange(e, "emergency")
-                      }
-                      className="mt-1"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={staff.email}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
-              </div>
-
-              <div className="border rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-6">Notes</h3>
-                <Textarea
-                  name="notes"
-                  value={newStaff.notes}
-                  onChange={(e) => handleNewStaffInputChange(e)}
-                  placeholder="Add notes about this staff member..."
-                  className="min-h-[100px]"
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    onChange={handlePasswordChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    value={staff.phone}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={staff.status}
+                    onValueChange={(value) => {
+                      handleInputChange({
+                        target: { name: "status", value },
+                      } as any);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="schedule" className="space-y-6">
-              <div className="border rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-6">Working Hours</h3>
-                <div className="space-y-6">
-                  {Object.entries(newStaff.workingHours).map(([day, hours]) => (
-                    <div key={day} className="flex items-center gap-4">
-                      <div className="w-28 font-medium capitalize text-white">
-                        {day}
-                      </div>
-                      <div className="flex items-center">
-                        <button
-                          type="button"
-                          className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white cursor-pointer"
-                          onClick={() => toggleNewStaffWorkDay(day)}
-                          aria-pressed={!!(hours.start && hours.end)}
-                        >
-                          <span
-                            className={`${
-                              hours.start && hours.end
-                                ? "bg-white translate-x-6"
-                                : "bg-gray-400 translate-x-1"
-                            } inline-block h-4 w-4 transform rounded-full transition-transform`}
-                          />
-                        </button>
-                      </div>
+            <TabsContent value="details" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="specialty">Specialty</Label>
+                  <Input
+                    id="specialty"
+                    name="specialty"
+                    value={staff.specialty || ""}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Input
+                    id="dateOfBirth"
+                    name="dateOfBirth"
+                    type="date"
+                    value={staff.dateOfBirth}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="joinDate">Join Date</Label>
+                  <Input
+                    id="joinDate"
+                    name="joinDate"
+                    type="date"
+                    value={staff.joinDate}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    value={staff.address}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    name="notes"
+                    value={staff.notes}
+                    onChange={handleInputChange}
+                    rows={3}
+                  />
+                </div>
+              </div>
 
-                      <div className="flex items-center gap-2">
-                        <select
-                          className={`border rounded p-2 w-28 ${
-                            !hours.start && !hours.end
-                              ? "bg-gray-900 text-gray-500 cursor-not-allowed"
-                              : "bg-black text-white"
-                          }`}
-                          value={hours.start || "09:00"}
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Emergency Contact</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="emergencyName">Name</Label>
+                    <Input
+                      id="emergencyName"
+                      name="name"
+                      value={staff.emergencyContact.name}
+                      onChange={(e) =>
+                        handleNestedInputChange(e, "emergencyContact")
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="emergencyRelationship">Relationship</Label>
+                    <Input
+                      id="emergencyRelationship"
+                      name="relationship"
+                      value={staff.emergencyContact.relationship}
+                      onChange={(e) =>
+                        handleNestedInputChange(e, "emergencyContact")
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="emergencyPhone">Phone</Label>
+                    <Input
+                      id="emergencyPhone"
+                      name="phone"
+                      value={staff.emergencyContact.phone}
+                      onChange={(e) =>
+                        handleNestedInputChange(e, "emergencyContact")
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="work" className="space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Working Hours</h3>
+                <div className="grid grid-cols-7 gap-2">
+                  {[
+                    "monday",
+                    "tuesday",
+                    "wednesday",
+                    "thursday",
+                    "friday",
+                    "saturday",
+                    "sunday",
+                  ].map((day) => (
+                    <div key={day} className="space-y-2">
+                      <Label className="capitalize">{day}</Label>
+                      <div className="grid grid-cols-2 gap-1">
+                        <Input
+                          type="time"
+                          value={
+                            staff.workingHours[
+                              day as keyof typeof staff.workingHours
+                            ].start
+                          }
                           onChange={(e) =>
-                            handleNewStaffWorkingHoursChange(
+                            handleWorkingHoursChange(
                               day,
                               "start",
                               e.target.value
                             )
                           }
-                          disabled={!hours.start && !hours.end}
-                        >
-                          <option value="08:00">08:00</option>
-                          <option value="08:30">08:30</option>
-                          <option value="09:00">09:00</option>
-                          <option value="09:30">09:30</option>
-                          <option value="10:00">10:00</option>
-                          <option value="10:30">10:30</option>
-                          <option value="11:00">11:00</option>
-                          <option value="11:30">11:30</option>
-                          <option value="12:00">12:00</option>
-                        </select>
-
-                        <span className="text-gray-400">to</span>
-
-                        <select
-                          className={`border rounded p-2 w-28 ${
-                            !hours.start && !hours.end
-                              ? "bg-gray-900 text-gray-500 cursor-not-allowed"
-                              : "bg-black text-white"
-                          }`}
-                          value={hours.end || "17:00"}
-                          onChange={(e) =>
-                            handleNewStaffWorkingHoursChange(
-                              day,
-                              "end",
-                              e.target.value
-                            )
+                          placeholder="Start"
+                        />
+                        <Input
+                          type="time"
+                          value={
+                            staff.workingHours[
+                              day as keyof typeof staff.workingHours
+                            ].end
                           }
-                          disabled={!hours.start && !hours.end}
-                        >
-                          <option value="16:00">16:00</option>
-                          <option value="16:30">16:30</option>
-                          <option value="17:00">17:00</option>
-                          <option value="17:30">17:30</option>
-                          <option value="18:00">18:00</option>
-                          <option value="18:30">18:30</option>
-                          <option value="19:00">19:00</option>
-                          <option value="19:30">19:30</option>
-                          <option value="20:00">20:00</option>
-                        </select>
+                          onChange={(e) =>
+                            handleWorkingHoursChange(day, "end", e.target.value)
+                          }
+                          placeholder="End"
+                        />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            </TabsContent>
 
-            <TabsContent value="documents" className="space-y-6">
-              <div className="border rounded-lg p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold">Documents</h3>
-                  <Button variant="outline" size="sm">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
-                  </Button>
-                </div>
-                <p className="text-center text-gray-500 py-4">
-                  You can upload documents after creating the staff member.
-                </p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="payroll" className="space-y-6">
-              <div className="border rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-6">Payroll Information</h3>
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Annual Salary*
-                    </Label>
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Payroll Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="salary">Salary</Label>
                     <Input
+                      id="salary"
                       name="salary"
                       type="number"
-                      value={newStaff.payroll.salary}
-                      onChange={(e) => handleNewStaffInputChange(e, "payroll")}
-                      className="mt-1"
-                      required
+                      value={staff.payroll.salary.toString()}
+                      onChange={(e) => handleNestedInputChange(e, "payroll")}
                     />
                   </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Payment Frequency
-                    </Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentFrequency">Payment Frequency</Label>
                     <Select
-                      value={newStaff.payroll.paymentFrequency}
-                      onValueChange={(value) =>
-                        setNewStaff({
-                          ...newStaff,
-                          payroll: {
-                            ...newStaff.payroll,
-                            paymentFrequency: value,
-                          },
-                        })
-                      }
+                      value={staff.payroll.paymentFrequency}
+                      onValueChange={(value) => {
+                        handleNestedInputChange(
+                          {
+                            target: { name: "paymentFrequency", value },
+                          } as any,
+                          "payroll"
+                        );
+                      }}
                     >
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select frequency" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Weekly">Weekly</SelectItem>
-                        <SelectItem value="Bi-weekly">Bi-weekly</SelectItem>
+                        <SelectItem value="Biweekly">Biweekly</SelectItem>
                         <SelectItem value="Monthly">Monthly</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
-                <h4 className="font-semibold mb-4">Bank Details</h4>
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Account Name
-                    </Label>
-                    <Input
-                      name="accountName"
-                      value={newStaff.payroll.bankDetails.accountName}
-                      onChange={(e) =>
-                        handleNewStaffInputChange(e, "payroll", "bankDetails")
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Bank Name
-                    </Label>
-                    <Input
-                      name="bankName"
-                      value={newStaff.payroll.bankDetails.bankName}
-                      onChange={(e) =>
-                        handleNewStaffInputChange(e, "payroll", "bankDetails")
-                      }
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-400 mb-1">
-                      Account Number
-                    </Label>
-                    <Input
-                      name="accountNumber"
-                      value={newStaff.payroll.bankDetails.accountNumber}
-                      onChange={(e) =>
-                        handleNewStaffInputChange(e, "payroll", "bankDetails")
-                      }
-                      className="mt-1"
-                    />
+                <div className="space-y-2 mt-4">
+                  <h4 className="font-medium">Bank Details</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="accountName">Account Name</Label>
+                      <Input
+                        id="accountName"
+                        name="accountName"
+                        value={staff.payroll.bankDetails.accountName}
+                        onChange={(e) =>
+                          handleDeepNestedInputChange(
+                            e,
+                            "payroll",
+                            "bankDetails"
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="accountNumber">Account Number</Label>
+                      <Input
+                        id="accountNumber"
+                        name="accountNumber"
+                        value={staff.payroll.bankDetails.accountNumber}
+                        onChange={(e) =>
+                          handleDeepNestedInputChange(
+                            e,
+                            "payroll",
+                            "bankDetails"
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bankName">Bank Name</Label>
+                      <Input
+                        id="bankName"
+                        name="bankName"
+                        value={staff.payroll.bankDetails.bankName}
+                        onChange={(e) =>
+                          handleDeepNestedInputChange(
+                            e,
+                            "payroll",
+                            "bankDetails"
+                          )
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end gap-2 mt-6 sticky bottom-0 bg-black py-4 border-t border-gray-800">
+          <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setNewStaffModalOpen(false)}
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateStaff}>Create Staff Member</Button>
+            <Button onClick={handleCreateStaff} disabled={isCreatingStaff}>
+              {isCreatingStaff ? "Creating..." : "Create Staff"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog
+        open={deleteConfirmModalOpen}
+        onOpenChange={setDeleteConfirmModalOpen}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>
+              Are you sure you want to delete{" "}
+              <strong>{staffToDelete?.name}</strong>? This action cannot be
+              undone.
+            </p>
           </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteStaff}
+              disabled={isDeletingStaff}
+            >
+              {isDeletingStaff ? "Deleting..." : "Delete Staff"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
