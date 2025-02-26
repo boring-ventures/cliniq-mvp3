@@ -1,12 +1,13 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "@supabase/supabase-js";
+import { corsHeaders } from "../_shared/cors.js";
+
+declare const serve: (handler: (req: Request) => Promise<Response>) => void;
 
 interface GetUserRequest {
   userId: string;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -27,8 +28,8 @@ serve(async (req) => {
 
     // Create a Supabase client with the auth header
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      "https://your-project.supabase.co", // Replace with your Supabase URL
+      "your-anon-key", // Replace with your anon key
       { global: { headers: { Authorization: authHeader } } }
     );
 
@@ -74,10 +75,10 @@ serve(async (req) => {
 
     // Check if the user has the SUPERADMIN role or READ_USER permission
     const isSuperAdmin = profile.role_assignments?.some(
-      (assignment) => assignment.role === "SUPERADMIN"
+      (assignment: any) => assignment.role === "SUPERADMIN"
     );
     const hasReadUserPermission = profile.permissions?.some(
-      (p) => p.permission === "READ_USER"
+      (p: any) => p.permission === "READ_USER"
     );
 
     if (!isSuperAdmin && !hasReadUserPermission) {
@@ -102,8 +103,8 @@ serve(async (req) => {
 
     // Create a service role client to get the user
     const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      "https://your-project.supabase.co", // Replace with your Supabase URL
+      "your-service-role-key", // Replace with your service role key
       { auth: { persistSession: false } }
     );
 
@@ -137,14 +138,12 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in get-user function:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
 
-    return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

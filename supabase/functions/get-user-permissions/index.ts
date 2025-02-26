@@ -1,8 +1,9 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.48.1";
-import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "@supabase/supabase-js";
+import { corsHeaders } from "../_shared/cors.js";
 
-serve(async (req) => {
+declare const serve: (handler: (req: Request) => Promise<Response>) => void;
+
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -23,8 +24,8 @@ serve(async (req) => {
 
     // Create a Supabase client with the auth header
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      "https://your-project.supabase.co", // Replace with your Supabase URL
+      "your-anon-key", // Replace with your anon key
       { global: { headers: { Authorization: authHeader } } }
     );
 
@@ -98,7 +99,10 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

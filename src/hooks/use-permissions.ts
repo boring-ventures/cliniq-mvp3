@@ -1,7 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { Permission } from "@prisma/client";
 import { useSession } from "next-auth/react";
+
+// Create our own Permission enum
+export enum Permission {
+  CREATE_USER = "CREATE_USER",
+  READ_USER = "READ_USER",
+  UPDATE_USER = "UPDATE_USER",
+  DELETE_USER = "DELETE_USER",
+  CREATE_ROLE = "CREATE_ROLE",
+  READ_ROLE = "READ_ROLE",
+  UPDATE_ROLE = "UPDATE_ROLE",
+  DELETE_ROLE = "DELETE_ROLE",
+  // Add other permissions as needed
+}
 
 interface UserData {
   id: number;
