@@ -26,6 +26,7 @@ import {
   ArrowDown,
   Eye,
   Printer,
+  Upload,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -221,6 +222,7 @@ export default function FinancesPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [dateRange, setDateRange] = useState("all");
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
+  const [newExpenseOpen, setNewExpenseOpen] = useState(false);
 
   const handleViewInvoice = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
@@ -330,10 +332,16 @@ export default function FinancesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Finances</h1>
-        <Button onClick={() => setNewInvoiceOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Invoice
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setNewInvoiceOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Invoice
+          </Button>
+          <Button onClick={() => setNewExpenseOpen(true)} variant="outline">
+            <Plus className="mr-2 h-4 w-4" />
+            New Expense
+          </Button>
+        </div>
       </div>
 
       {/* Financial Overview Cards */}
@@ -731,8 +739,8 @@ export default function FinancesPage() {
 
       {/* New Invoice Modal */}
       <Dialog open={newInvoiceOpen} onOpenChange={setNewInvoiceOpen}>
-        <DialogContent className="max-w-4xl bg-black text-white">
-          <DialogHeader className="flex flex-row items-center">
+        <DialogContent className="max-w-3xl bg-black text-white overflow-y-auto max-h-[90vh]">
+          <DialogHeader className="flex flex-row items-center sticky top-0 bg-black z-10 pb-4">
             <Button
               variant="ghost"
               size="icon"
@@ -745,7 +753,7 @@ export default function FinancesPage() {
           </DialogHeader>
 
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label className="text-sm font-medium text-gray-400 mb-1">
                   Patient
@@ -827,78 +835,93 @@ export default function FinancesPage() {
                   </div>
                 </div>
 
-                {/* Item row 1 */}
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-6">
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select service" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="checkup">Dental Check-up</SelectItem>
-                        <SelectItem value="cleaning">Teeth Cleaning</SelectItem>
-                        <SelectItem value="xray">X-Ray</SelectItem>
-                        <SelectItem value="filling">Cavity Filling</SelectItem>
-                        <SelectItem value="root-canal">Root Canal</SelectItem>
-                        <SelectItem value="crown">Dental Crown</SelectItem>
-                        <SelectItem value="whitening">
-                          Teeth Whitening
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-2">
-                    <Input type="number" min="1" defaultValue="1" />
-                  </div>
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      defaultValue="150.00"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <div className="border rounded-md p-2 text-right">
-                      $150.00
+                {/* Item rows */}
+                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                  {/* Item row 1 */}
+                  <div className="grid grid-cols-12 gap-4 items-center">
+                    <div className="col-span-6">
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select service" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="checkup">
+                            Dental Check-up
+                          </SelectItem>
+                          <SelectItem value="cleaning">
+                            Teeth Cleaning
+                          </SelectItem>
+                          <SelectItem value="xray">X-Ray</SelectItem>
+                          <SelectItem value="filling">
+                            Cavity Filling
+                          </SelectItem>
+                          <SelectItem value="root-canal">Root Canal</SelectItem>
+                          <SelectItem value="crown">Dental Crown</SelectItem>
+                          <SelectItem value="whitening">
+                            Teeth Whitening
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2">
+                      <Input type="number" min="1" defaultValue="1" />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        defaultValue="150.00"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <div className="border rounded-md p-2 text-right">
+                        $150.00
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Item row 2 */}
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-6">
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select service" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="checkup">Dental Check-up</SelectItem>
-                        <SelectItem value="cleaning">Teeth Cleaning</SelectItem>
-                        <SelectItem value="xray">X-Ray</SelectItem>
-                        <SelectItem value="filling">Cavity Filling</SelectItem>
-                        <SelectItem value="root-canal">Root Canal</SelectItem>
-                        <SelectItem value="crown">Dental Crown</SelectItem>
-                        <SelectItem value="whitening">
-                          Teeth Whitening
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-2">
-                    <Input type="number" min="1" defaultValue="1" />
-                  </div>
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      defaultValue="0.00"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <div className="border rounded-md p-2 text-right">
-                      $0.00
+                  {/* Item row 2 */}
+                  <div className="grid grid-cols-12 gap-4 items-center">
+                    <div className="col-span-6">
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select service" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="checkup">
+                            Dental Check-up
+                          </SelectItem>
+                          <SelectItem value="cleaning">
+                            Teeth Cleaning
+                          </SelectItem>
+                          <SelectItem value="xray">X-Ray</SelectItem>
+                          <SelectItem value="filling">
+                            Cavity Filling
+                          </SelectItem>
+                          <SelectItem value="root-canal">Root Canal</SelectItem>
+                          <SelectItem value="crown">Dental Crown</SelectItem>
+                          <SelectItem value="whitening">
+                            Teeth Whitening
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2">
+                      <Input type="number" min="1" defaultValue="1" />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        defaultValue="0.00"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <div className="border rounded-md p-2 text-right">
+                        $0.00
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -909,7 +932,7 @@ export default function FinancesPage() {
                 </Button>
 
                 <div className="flex justify-end mt-4">
-                  <div className="w-1/3 space-y-2">
+                  <div className="w-full md:w-1/3 space-y-2">
                     <div className="flex justify-between">
                       <span>Subtotal:</span>
                       <span>$150.00</span>
@@ -933,11 +956,11 @@ export default function FinancesPage() {
               </Label>
               <Textarea
                 placeholder="Add any additional notes or payment instructions..."
-                className="min-h-[100px]"
+                className="min-h-[80px]"
               />
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 sticky bottom-0 pt-4 bg-black">
               <Button
                 variant="outline"
                 onClick={() => setNewInvoiceOpen(false)}
@@ -945,6 +968,131 @@ export default function FinancesPage() {
                 Cancel
               </Button>
               <Button>Save Invoice</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Expense Modal */}
+      <Dialog open={newExpenseOpen} onOpenChange={setNewExpenseOpen}>
+        <DialogContent className="max-w-3xl bg-black text-white overflow-y-auto max-h-[90vh]">
+          <DialogHeader className="flex flex-row items-center sticky top-0 bg-black z-10 pb-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-2 text-white"
+              onClick={() => setNewExpenseOpen(false)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <DialogTitle className="text-xl">Create New Expense</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label className="text-sm font-medium text-gray-400 mb-1">
+                  Category
+                </Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="supplies">Medical Supplies</SelectItem>
+                    <SelectItem value="equipment">Equipment</SelectItem>
+                    <SelectItem value="rent">Rent</SelectItem>
+                    <SelectItem value="utilities">Utilities</SelectItem>
+                    <SelectItem value="salaries">Salaries</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-400 mb-1">
+                  Amount
+                </Label>
+                <Input type="number" placeholder="0.00" />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-400 mb-1">
+                  Date
+                </Label>
+                <Input
+                  type="date"
+                  defaultValue={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-400 mb-1">
+                  Payment Method
+                </Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="credit">Credit Card</SelectItem>
+                    <SelectItem value="debit">Debit Card</SelectItem>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="check">Check</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium text-gray-400 mb-1">
+                Description
+              </Label>
+              <Textarea
+                placeholder="Add a description of the expense..."
+                className="min-h-[80px]"
+              />
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium text-gray-400 mb-1">
+                Receipt
+              </Label>
+              <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center">
+                <label
+                  htmlFor="receipt-upload"
+                  className="cursor-pointer block"
+                >
+                  <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-400">
+                    Drag and drop a file, or{" "}
+                    <span className="text-blue-500">browse</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Supports JPG, PNG or PDF up to 5MB
+                  </p>
+                  <input
+                    id="receipt-upload"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        console.log("File selected:", e.target.files[0].name);
+                        // Here you would handle the file upload
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 sticky bottom-0 pt-4 bg-black">
+              <Button
+                variant="outline"
+                onClick={() => setNewExpenseOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button>Save Expense</Button>
             </div>
           </div>
         </DialogContent>
