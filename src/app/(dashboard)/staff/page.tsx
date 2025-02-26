@@ -49,6 +49,7 @@ import {
 } from "@/hooks/use-staff-permissions";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 
 export default function StaffPage() {
   // Get staff data and operations
@@ -576,9 +577,11 @@ export default function StaffPage() {
             </TabsContent>
 
             <TabsContent value="work" className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <h3 className="text-lg font-medium">Working Hours</h3>
-                <div className="grid grid-cols-7 gap-2">
+                <p className="text-sm text-muted-foreground">Set the working days and hours for this staff member.</p>
+                
+                <div className="space-y-4">
                   {[
                     "monday",
                     "tuesday",
@@ -588,40 +591,114 @@ export default function StaffPage() {
                     "saturday",
                     "sunday",
                   ].map((day) => (
-                    <div key={day} className="space-y-2">
-                      <Label className="capitalize">{day}</Label>
-                      <div className="grid grid-cols-2 gap-1">
-                        <Input
-                          type="time"
-                          value={
-                            staff.workingHours[
-                              day as keyof typeof staff.workingHours
-                            ].start
+                    <div key={day} className="flex items-center gap-4">
+                      <div className="w-28">
+                        <Label className="capitalize font-medium">{day}</Label>
+                      </div>
+                      
+                      <Switch 
+                        checked={!!staff.workingHours[day as keyof typeof staff.workingHours].start}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            // When enabled, set default hours (9-5)
+                            handleWorkingHoursChange(day, "start", "09:00");
+                            handleWorkingHoursChange(day, "end", "17:00");
+                          } else {
+                            // When disabled, clear hours
+                            handleWorkingHoursChange(day, "start", "");
+                            handleWorkingHoursChange(day, "end", "");
                           }
-                          onChange={(e) =>
-                            handleWorkingHoursChange(
-                              day,
-                              "start",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Start"
-                        />
-                        <Input
-                          type="time"
-                          value={
-                            staff.workingHours[
-                              day as keyof typeof staff.workingHours
-                            ].end
-                          }
-                          onChange={(e) =>
-                            handleWorkingHoursChange(day, "end", e.target.value)
-                          }
-                          placeholder="End"
-                        />
+                        }}
+                      />
+                      
+                      <div className="flex-1 flex items-center gap-2">
+                        <Select
+                          value={staff.workingHours[day as keyof typeof staff.workingHours].start}
+                          onValueChange={(value) => handleWorkingHoursChange(day, "start", value)}
+                          disabled={!staff.workingHours[day as keyof typeof staff.workingHours].start}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="09:00" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00"].map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select
+                          value={staff.workingHours[day as keyof typeof staff.workingHours].end}
+                          onValueChange={(value) => handleWorkingHoursChange(day, "end", value)}
+                          disabled={!staff.workingHours[day as keyof typeof staff.workingHours].start}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="17:00" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00"].map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   ))}
+                </div>
+                
+                <div className="flex gap-2 mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      // Set standard 9-5 hours for weekdays
+                      const standardHours = {
+                        monday: { start: "09:00", end: "17:00" },
+                        tuesday: { start: "09:00", end: "17:00" },
+                        wednesday: { start: "09:00", end: "17:00" },
+                        thursday: { start: "09:00", end: "17:00" },
+                        friday: { start: "09:00", end: "17:00" },
+                        saturday: { start: "", end: "" },
+                        sunday: { start: "", end: "" },
+                      };
+                      
+                      // Update all working hours at once
+                      Object.entries(standardHours).forEach(([day, hours]) => {
+                        handleWorkingHoursChange(day, "start", hours.start);
+                        handleWorkingHoursChange(day, "end", hours.end);
+                      });
+                    }}
+                  >
+                    Set Standard Hours
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      // Clear all hours
+                      const emptyHours = {
+                        monday: { start: "", end: "" },
+                        tuesday: { start: "", end: "" },
+                        wednesday: { start: "", end: "" },
+                        thursday: { start: "", end: "" },
+                        friday: { start: "", end: "" },
+                        saturday: { start: "", end: "" },
+                        sunday: { start: "", end: "" },
+                      };
+                      
+                      // Update all working hours at once
+                      Object.entries(emptyHours).forEach(([day, hours]) => {
+                        handleWorkingHoursChange(day, "start", hours.start);
+                        handleWorkingHoursChange(day, "end", hours.end);
+                      });
+                    }}
+                  >
+                    Clear All
+                  </Button>
                 </div>
               </div>
 
