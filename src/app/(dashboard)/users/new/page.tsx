@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Permission, UserRole } from "@prisma/client";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +27,22 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { ArrowLeft, Loader2 } from "lucide-react";
+
+// Replace this import
+// import { Permission, UserRole } from "@prisma/client";
+
+// With these local enum definitions
+enum Permission {
+  CREATE_USER = "CREATE_USER",
+}
+
+enum UserRole {
+  USER = "USER",
+  DOCTOR = "DOCTOR",
+  RECEPTIONIST = "RECEPTIONIST",
+  ADMIN = "ADMIN",
+  SUPERADMIN = "SUPERADMIN",
+}
 
 // Form validation schema
 const formSchema = z.object({
@@ -79,8 +94,9 @@ export default function NewUserPage() {
       setIsSubmitting(true);
 
       // Create user in Supabase Auth
-      const { error: authError } =
-        await supabase.functions.invoke("create-user", {
+      const { error: authError } = await supabase.functions.invoke(
+        "create-user",
+        {
           body: {
             email: values.email,
             password: values.password,
@@ -88,7 +104,8 @@ export default function NewUserPage() {
             fullName: values.fullName,
             username: values.username,
           },
-        });
+        }
+      );
 
       if (authError) {
         throw new Error(authError.message);
@@ -115,7 +132,7 @@ export default function NewUserPage() {
   }
 
   return (
-    <PermissionGuard permission={Permission.CREATE_USER} redirectTo="/users">
+    <PermissionGuard permissions={Permission.CREATE_USER} redirectTo="/users">
       <div className="container mx-auto py-6">
         <Button
           variant="ghost"
@@ -221,7 +238,7 @@ export default function NewUserPage() {
                         </SelectItem>
                         <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
                         <PermissionGuard
-                          permission={Permission.CREATE_USER}
+                          permissions={Permission.CREATE_USER}
                           fallback={null}
                         >
                           <SelectItem value={UserRole.SUPERADMIN}>

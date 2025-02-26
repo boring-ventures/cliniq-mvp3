@@ -19,21 +19,32 @@ import { toast } from "@/components/ui/use-toast";
 import { profileFormSchema } from "@/lib/validations/profile";
 import type { ProfileFormValues } from "@/lib/validations/profile";
 
+// Define the Profile type to match the properties we're using
+interface Profile {
+  userId?: string;
+  username?: string;
+  fullName?: string;
+  bio?: string | null;
+}
+
 export function ProfileForm() {
   const { profile } = useAuth();
+
+  // Cast profile to our defined type
+  const typedProfile = profile as Profile | undefined;
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      username: profile?.username || "",
-      fullName: profile?.fullName || "",
-      bio: profile?.bio || "",
+      username: typedProfile?.username || "",
+      fullName: typedProfile?.fullName || "",
+      bio: typedProfile?.bio || "",
     },
   });
 
   async function onSubmit(data: ProfileFormValues) {
     try {
-      const response = await fetch(`/api/profile/${profile?.userId}`, {
+      const response = await fetch(`/api/profile/${typedProfile?.userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -93,14 +104,15 @@ export function ProfileForm() {
         <FormField
           control={form.control}
           name="bio"
-          render={({ field }) => (
+          render={({ field: { value, ...fieldProps } }) => (
             <FormItem>
               <FormLabel>Bio</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Tell us a little bit about yourself"
                   className="resize-none"
-                  {...field}
+                  value={value || ""}
+                  {...fieldProps}
                 />
               </FormControl>
               <FormDescription>

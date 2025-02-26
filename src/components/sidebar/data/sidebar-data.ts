@@ -11,7 +11,41 @@ import {
   FileText,
   Stethoscope,
 } from "lucide-react";
-import type { SidebarData } from "../types";
+import type { LucideIcon } from "lucide-react";
+
+// Define the types for the sidebar data
+export interface NavItem {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  items?: Omit<NavItem, "icon">[];
+}
+
+export interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+export interface Team {
+  name: string;
+  logo: LucideIcon;
+  plan: string;
+}
+
+export interface SidebarData {
+  teams: Team[];
+  navGroups: NavGroup[];
+}
+
+export interface SidebarLink {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  submenu?: {
+    title: string;
+    href: string;
+  }[];
+}
 
 export const sidebarData: SidebarData = {
   teams: [
@@ -99,7 +133,7 @@ export const sidebarData: SidebarData = {
   ],
 };
 
-export const sidebarLinks = [
+export const sidebarLinks: SidebarLink[] = [
   {
     title: "Dashboard",
     href: "/dashboard",

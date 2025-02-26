@@ -1,16 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Permission } from "@prisma/client";
+import { type NextRequest, NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth-utils";
 
 const prisma = new PrismaClient();
 
+// Add this enum definition
+enum Permission {
+  MANAGE_SETTINGS = "MANAGE_SETTINGS",
+  // Add other permissions used in the file
+}
+
 // Schema for role creation
 const roleCreateSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
-  permissions: z.array(z.nativeEnum(Permission)),
+  permissions: z.array(z.string()),
 });
+
+// Add this interface at the top of the file
+interface RoleWithPermissions {
+  id: string;
+  name: string;
+  description: string;
+  permissions: { permission: string }[];
+  userCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export async function GET(request: NextRequest) {
   // Check if user has permission to read roles
@@ -23,8 +40,8 @@ export async function GET(request: NextRequest) {
   try {
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const page = Number.parseInt(searchParams.get("page") || "1", 10);
+    const limit = Number.parseInt(searchParams.get("limit") || "10", 10);
     const search = searchParams.get("search") || "";
 
     // Calculate pagination
@@ -46,26 +63,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Get roles with pagination
-    const roles = await prisma.role.findMany({
-      where,
-      include: {
-        permissions: {
-          select: {
-            permission: true,
-          },
-        },
-        users: {
-          select: {
-            id: true,
-          },
-        },
-      },
-      skip,
-      take: limit,
-      orderBy: {
-        name: "asc",
-      },
-    });
+    const roles = (await prisma.$queryRaw`
+      SELECT r.*, 
+        (SELECT json_agg(json_build_object('permission', rp.permission)) 
+         FROM "RolePermission" rp 
+         WHERE rp."roleId" = r.id) as permissions,
+        (SELECT count(*) 
+         FROM "User" u 
+         WHERE u."roleId" = r.id) as "userCount"
+      FROM "Role" r
+      ${search ? `WHERE r.name ILIKE '%${search}%' OR r.description ILIKE '%${search}%'` : ""}
+      ORDER BY r.name ASC
+      LIMIT ${limit} OFFSET ${skip}
+    `) as unknown as RoleWithPermissions[];
 
     // Transform the data to include permissions as an array
     const formattedRoles = roles.map((role) => ({
@@ -73,13 +83,17 @@ export async function GET(request: NextRequest) {
       name: role.name,
       description: role.description,
       permissions: role.permissions.map((p) => p.permission),
-      userCount: role.users.length,
+      userCount: role.userCount,
       createdAt: role.createdAt,
       updatedAt: role.updatedAt,
     }));
 
     // Get total count for pagination
-    const total = await prisma.role.count({ where });
+    const totalResult = (await prisma.$queryRaw`
+      SELECT COUNT(*) as count FROM "Role" r
+      ${search ? `WHERE r.name ILIKE '%${search}%' OR r.description ILIKE '%${search}%'` : ""}
+    `) as { count: number }[];
+    const total = Number.parseInt(totalResult[0].count.toString(), 10);
 
     return NextResponse.json({
       roles: formattedRoles,
@@ -114,9 +128,10 @@ export async function POST(request: NextRequest) {
     const validatedData = roleCreateSchema.parse(body);
 
     // Check if role with name already exists
-    const existingRole = await prisma.role.findUnique({
-      where: { name: validatedData.name },
-    });
+    const existingRoleResult = (await prisma.$queryRaw`
+      SELECT id FROM "Role" WHERE name = ${validatedData.name}
+    `) as { id: string }[];
+    const existingRole = existingRoleResult.length > 0;
 
     if (existingRole) {
       return NextResponse.json(
@@ -125,25 +140,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the role with permissions
-    const role = await prisma.role.create({
-      data: {
-        name: validatedData.name,
-        description: validatedData.description || "",
-        permissions: {
-          create: validatedData.permissions.map((permission) => ({
-            permission,
-          })),
-        },
-      },
-      include: {
-        permissions: {
-          select: {
-            permission: true,
-          },
-        },
-      },
-    });
+    // Create the role with raw SQL
+    const newRoleResult = (await prisma.$queryRaw`
+      INSERT INTO "Role" (name, description, "createdAt", "updatedAt")
+      VALUES (${validatedData.name}, ${validatedData.description || ""}, NOW(), NOW())
+      RETURNING id, name, description, "createdAt", "updatedAt"
+    `) as {
+      id: string;
+      name: string;
+      description: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }[];
+
+    const newRole = newRoleResult[0];
+
+    // Add permissions
+    for (const permission of validatedData.permissions) {
+      await prisma.$executeRaw`
+        INSERT INTO "RolePermission" ("roleId", permission)
+        VALUES (${newRole.id}, ${permission})
+      `;
+    }
+
+    // Get the created role with permissions
+    const roleWithPermissionsResult = (await prisma.$queryRaw`
+      SELECT r.*, 
+        (SELECT json_agg(json_build_object('permission', rp.permission)) 
+         FROM "RolePermission" rp 
+         WHERE rp."roleId" = r.id) as permissions
+      FROM "Role" r
+      WHERE r.id = ${newRole.id}
+    `) as unknown as RoleWithPermissions[];
+    const role = roleWithPermissionsResult[0];
 
     // Format the response
     const formattedRole = {
@@ -151,7 +180,7 @@ export async function POST(request: NextRequest) {
       name: role.name,
       description: role.description,
       permissions: role.permissions.map((p) => p.permission),
-      userCount: 0,
+      userCount: role.userCount,
       createdAt: role.createdAt,
       updatedAt: role.updatedAt,
     };

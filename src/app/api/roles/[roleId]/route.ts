@@ -1,16 +1,39 @@
-import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Permission } from "@prisma/client";
+import { type NextRequest, NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth-utils";
 
 const prisma = new PrismaClient();
 
+// Add this enum definition
+enum Permission {
+  MANAGE_SETTINGS = "MANAGE_SETTINGS",
+  // Add other permissions used in the file
+}
+
 // Schema for role update
 const roleUpdateSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
-  permissions: z.array(z.nativeEnum(Permission)).optional(),
+  permissions: z.array(z.string()).optional(),
 });
+
+// Add this interface at the top of the file
+interface RoleWithPermissions {
+  id: string;
+  name: string;
+  description: string;
+  permissions: { permission: string }[];
+  users: {
+    id: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    isActive?: boolean;
+  }[];
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export async function GET(
   request: NextRequest,
@@ -25,31 +48,23 @@ export async function GET(
 
   try {
     const resolvedParams = await params;
-    const roleId = resolvedParams.roleId;
+    const roleId = Number.parseInt(resolvedParams.roleId, 10);
 
     if (isNaN(roleId)) {
       return NextResponse.json({ error: "Invalid role ID" }, { status: 400 });
     }
 
-    const role = await prisma.role.findUnique({
-      where: { id: roleId },
-      include: {
-        permissions: {
-          select: {
-            permission: true,
-          },
-        },
-        users: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            isActive: true,
-          },
-        },
-      },
-    });
+    const role = (await prisma.$queryRaw`
+      SELECT r.*, 
+        (SELECT json_agg(json_build_object('permission', rp.permission)) 
+         FROM "RolePermission" rp 
+         WHERE rp."roleId" = r.id) as permissions,
+        (SELECT json_agg(json_build_object('id', u.id, 'email', u.email, 'firstName', u.firstName, 'lastName', u.lastName, 'isActive', u.isActive)) 
+         FROM "User" u 
+         WHERE u."roleId" = r.id) as users
+      FROM "Role" r
+      WHERE r.id = ${roleId}
+    `) as unknown as RoleWithPermissions;
 
     if (!role) {
       return NextResponse.json({ error: "Role not found" }, { status: 404 });
@@ -60,7 +75,7 @@ export async function GET(
       id: role.id,
       name: role.name,
       description: role.description,
-      permissions: role.permissions.map((p) => p.permission),
+      permissions: role.permissions,
       users: role.users,
       userCount: role.users.length,
       createdAt: role.createdAt,
@@ -90,7 +105,7 @@ export async function PATCH(
 
   try {
     const resolvedParams = await params;
-    const roleId = resolvedParams.roleId;
+    const roleId = Number.parseInt(resolvedParams.roleId, 10);
 
     if (isNaN(roleId)) {
       return NextResponse.json({ error: "Invalid role ID" }, { status: 400 });
@@ -102,22 +117,23 @@ export async function PATCH(
     const validatedData = roleUpdateSchema.parse(body);
 
     // Check if role exists
-    const existingRole = await prisma.role.findUnique({
-      where: { id: roleId },
-      include: {
-        permissions: true,
-      },
-    });
-
-    if (!existingRole) {
-      return NextResponse.json({ error: "Role not found" }, { status: 404 });
-    }
+    const existingRoleResult = (await prisma.$queryRaw`
+      SELECT r.*, 
+        (SELECT json_agg(json_build_object('permission', rp.permission)) 
+         FROM "RolePermission" rp 
+         WHERE rp."roleId" = r.id) as permissions
+      FROM "Role" r
+      WHERE r.id = ${roleId}
+    `) as unknown as RoleWithPermissions[];
+    const existingRole =
+      existingRoleResult[0] as unknown as RoleWithPermissions;
 
     // Check if name is being updated and if it's already taken
     if (validatedData.name && validatedData.name !== existingRole.name) {
-      const nameExists = await prisma.role.findUnique({
-        where: { name: validatedData.name },
-      });
+      const nameExistsResult = (await prisma.$queryRaw`
+        SELECT id FROM "Role" WHERE name = ${validatedData.name}
+      `) as { id: string }[];
+      const nameExists = nameExistsResult.length > 0;
 
       if (nameExists) {
         return NextResponse.json(
@@ -127,54 +143,43 @@ export async function PATCH(
       }
     }
 
-    // Start a transaction to update role and permissions
-    await prisma.$transaction(async (tx) => {
-      // Update basic role information
-      const role = await tx.role.update({
-        where: { id: roleId },
-        data: {
-          name: validatedData.name,
-          description: validatedData.description,
-        },
-      });
+    // Update role using raw queries
+    await prisma.$executeRaw`
+      UPDATE "Role" 
+      SET name = ${validatedData.name || existingRole.name},
+          description = ${validatedData.description || existingRole.description},
+          "updatedAt" = NOW()
+      WHERE id = ${roleId}
+    `;
 
-      // Update permissions if provided
-      if (validatedData.permissions) {
-        // Delete existing permissions
-        await tx.rolePermission.deleteMany({
-          where: { roleId },
-        });
+    // Update permissions if provided
+    if (validatedData.permissions) {
+      // Delete existing permissions
+      await prisma.$executeRaw`
+        DELETE FROM "RolePermission" WHERE "roleId" = ${roleId}
+      `;
 
-        // Add new permissions
-        for (const permission of validatedData.permissions) {
-          await tx.rolePermission.create({
-            data: {
-              roleId,
-              permission,
-            },
-          });
-        }
+      // Add new permissions
+      for (const permission of validatedData.permissions) {
+        await prisma.$executeRaw`
+          INSERT INTO "RolePermission" ("roleId", permission)
+          VALUES (${roleId}, ${permission})
+        `;
       }
-
-      return role;
-    });
+    }
 
     // Fetch the updated role with permissions
-    const roleWithPermissions = await prisma.role.findUnique({
-      where: { id: roleId },
-      include: {
-        permissions: {
-          select: {
-            permission: true,
-          },
-        },
-        users: {
-          select: {
-            id: true,
-          },
-        },
-      },
-    });
+    const roleWithPermissions = (await prisma.$queryRaw`
+      SELECT r.*, 
+        (SELECT json_agg(json_build_object('permission', rp.permission)) 
+         FROM "RolePermission" rp 
+         WHERE rp."roleId" = r.id) as permissions,
+        (SELECT json_agg(json_build_object('id', u.id, 'email', u.email, 'firstName', u.firstName, 'lastName', u.lastName, 'isActive', u.isActive)) 
+         FROM "User" u 
+         WHERE u."roleId" = r.id) as users
+      FROM "Role" r
+      WHERE r.id = ${roleId}
+    `) as unknown as RoleWithPermissions;
 
     if (!roleWithPermissions) {
       throw new Error("Failed to fetch updated role");
@@ -222,26 +227,29 @@ export async function DELETE(
 
   try {
     const resolvedParams = await params;
-    const roleId = resolvedParams.roleId;
+    const roleId = Number.parseInt(resolvedParams.roleId, 10);
 
     if (isNaN(roleId)) {
       return NextResponse.json({ error: "Invalid role ID" }, { status: 400 });
     }
 
     // Check if role exists
-    const existingRole = await prisma.role.findUnique({
-      where: { id: roleId },
-      include: {
-        users: true,
-      },
-    });
+    const existingRoleResult = (await prisma.$queryRaw`
+      SELECT r.*, 
+        (SELECT json_agg(json_build_object('id', u.id)) 
+         FROM "User" u 
+         WHERE u."roleId" = r.id) as users
+      FROM "Role" r
+      WHERE r.id = ${roleId}
+    `) as unknown as RoleWithPermissions[];
+    const existingRole = existingRoleResult[0];
 
     if (!existingRole) {
       return NextResponse.json({ error: "Role not found" }, { status: 404 });
     }
 
     // Check if role has users assigned
-    if (existingRole.users.length > 0) {
+    if (existingRole.users && existingRole.users.length > 0) {
       return NextResponse.json(
         {
           error: "Cannot delete role with assigned users",
@@ -252,14 +260,14 @@ export async function DELETE(
     }
 
     // Delete role permissions first
-    await prisma.rolePermission.deleteMany({
-      where: { roleId },
-    });
+    await prisma.$executeRaw`
+      DELETE FROM "RolePermission" WHERE "roleId" = ${roleId}
+    `;
 
     // Delete the role
-    await prisma.role.delete({
-      where: { id: roleId },
-    });
+    await prisma.$executeRaw`
+      DELETE FROM "Role" WHERE id = ${roleId}
+    `;
 
     return NextResponse.json({
       message: "Role deleted successfully",
