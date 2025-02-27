@@ -77,7 +77,7 @@ export function useStaffForm(initialStaff?: StaffMember) {
     setStaff((prev) => ({
       ...prev,
       [nestedKey]: {
-        ...prev[nestedKey as keyof typeof prev],
+        ...(prev[nestedKey as keyof typeof prev] as any),
         [name]: value,
       },
     }));
@@ -93,7 +93,7 @@ export function useStaffForm(initialStaff?: StaffMember) {
     setStaff((prev) => ({
       ...prev,
       [parentKey]: {
-        ...prev[parentKey as keyof typeof prev],
+        ...(prev[parentKey as keyof typeof prev] as any),
         [childKey]: {
           ...((prev[parentKey as keyof typeof prev] as any)[childKey]),
           [name]: value,
