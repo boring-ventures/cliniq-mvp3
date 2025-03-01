@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAppointments } from "@/hooks/use-appointments";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -21,78 +22,20 @@ export default function CalendarViewPage() {
   const [view, setView] = useState<"day" | "week" | "month">("week");
   const [selectedDoctor, setSelectedDoctor] = useState<string>("all");
 
-  // Mock appointment data
-  const appointments = [
-    {
-      id: "1",
-      patient: "Sarah Thompson",
-      doctor: "Dr. Wilson",
-      doctorId: "wilson",
-      date: new Date(),
-      time: "09:00",
-      endTime: "09:30",
-      status: "confirmed",
-      reason: "Regular checkup",
-      color: "green",
-    },
-    {
-      id: "2",
-      patient: "Michael Rodriguez",
-      doctor: "Dr. Chen",
-      doctorId: "chen",
-      date: new Date(),
-      time: "10:30",
-      endTime: "11:00",
-      status: "pending",
-      reason: "Braces adjustment",
-      color: "yellow",
-    },
-    {
-      id: "3",
-      patient: "Emma Davis",
-      doctor: "Dr. Brown",
-      doctorId: "brown",
-      date: new Date(),
-      time: "11:45",
-      endTime: "12:15",
-      status: "confirmed",
-      reason: "Gum treatment",
-      color: "green",
-    },
-    {
-      id: "4",
-      patient: "John Smith",
-      doctor: "Dr. Wilson",
-      doctorId: "wilson",
-      date: addDays(new Date(), 1),
-      time: "10:00",
-      endTime: "10:30",
-      status: "confirmed",
-      reason: "Tooth extraction",
-      color: "green",
-    },
-    {
-      id: "5",
-      patient: "Lisa Anderson",
-      doctor: "Dr. Chen",
-      doctorId: "chen",
-      date: addDays(new Date(), 1),
-      time: "14:30",
-      endTime: "15:00",
-      status: "cancelled",
-      reason: "Consultation",
-      color: "red",
-    },
-  ];
+  const { useFilteredAppointments } = useAppointments();
 
-  // Filter appointments by doctor
-  const filteredAppointments = appointments.filter(
-    (appointment) => selectedDoctor === "all" || appointment.doctorId === selectedDoctor
-  );
-
-  // Get days for week view
+  // Get the date range based on the selected view
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+
+  // Fetch appointments using the hook
+  const { data: appointments = [], isLoading } = useFilteredAppointments({
+    doctorId: selectedDoctor !== "all" ? selectedDoctor : undefined,
+    startDate: weekStart,
+    endDate: weekEnd,
+  });
+
+  // Get days for week view
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
   // Time slots for day view
@@ -103,7 +46,7 @@ export default function CalendarViewPage() {
 
   // Helper to get appointments for a specific day
   const getAppointmentsForDay = (day: Date) => {
-    return filteredAppointments.filter((appointment) => 
+    return appointments.filter((appointment) => 
       isSameDay(appointment.date, day)
     );
   };
@@ -239,7 +182,7 @@ export default function CalendarViewPage() {
           ) : (
             <div className="space-y-2 min-h-[600px]">
               {timeSlots.map((time, i) => {
-                const hourAppointments = filteredAppointments.filter(
+                const hourAppointments = appointments.filter(
                   (appointment) => 
                     isSameDay(appointment.date, date) && 
                     appointment.time.startsWith(time.split(":")[0])

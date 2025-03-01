@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       dateOfBirth: staff.dateOfBirth ? staff.dateOfBirth.toISOString().split('T')[0] : '',
       joinDate: staff.joinDate ? staff.joinDate.toISOString().split('T')[0] : '',
       workingHours: staff.workingHours.reduce((acc, hour) => {
-        acc[hour.dayOfWeek.toLowerCase()] = { 
+        acc[hour.dayOfWeek.toLowerCase() as keyof typeof acc] = { 
           start: hour.startTime || '', 
           end: hour.endTime || '' 
         };

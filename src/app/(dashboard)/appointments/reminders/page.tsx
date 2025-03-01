@@ -43,8 +43,13 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAppointmentReminders } from "@/hooks/use-appointment-reminders";
+import { useAppointmentFollowUps } from "@/hooks/use-appointment-follow-ups";
 
 export default function RemindersPage() {
+  const { useReminders, createReminder } = useAppointmentReminders();
+  const { useFollowUps, createFollowUp } = useAppointmentFollowUps();
+
   const [date, setDate] = useState<Date>();
   const [open, setOpen] = useState(false);
   const [reminderType, setReminderType] = useState("appointment");
@@ -68,71 +73,14 @@ export default function RemindersPage() {
     phone: string;
   } | null>(null);
 
-  // Mock reminder data
-  const pendingReminders = [
-    {
-      id: "1",
-      patient: "John Smith",
-      phone: "+1 (555) 123-4567",
-      appointmentDate: "Feb 26, 2023",
-      appointmentTime: "10:00 AM",
-      reminderType: "24h Before",
-      status: "pending",
-      scheduledFor: "Feb 25, 2023 10:00 AM",
-    },
-    {
-      id: "2",
-      patient: "Emma Davis",
-      phone: "+1 (555) 987-6543",
-      appointmentDate: "Feb 27, 2023",
-      appointmentTime: "11:45 AM",
-      reminderType: "Follow-up",
-      status: "pending",
-      scheduledFor: "Feb 26, 2023 11:45 AM",
-    },
-    {
-      id: "3",
-      patient: "Michael Rodriguez",
-      phone: "+1 (555) 456-7890",
-      appointmentDate: "Feb 27, 2023",
-      appointmentTime: "2:30 PM",
-      reminderType: "24h Before",
-      status: "pending",
-      scheduledFor: "Feb 26, 2023 2:30 PM",
-    },
-  ];
+  // Fetch pending reminders
+  const { data: pendingReminders = [] } = useReminders({ status: "PENDING" });
+  
+  // Fetch sent reminders
+  const { data: sentReminders = [] } = useReminders({ status: "SENT" });
 
-  const sentReminders = [
-    {
-      id: "4",
-      patient: "Sarah Thompson",
-      phone: "+1 (555) 234-5678",
-      appointmentDate: "Feb 25, 2023",
-      appointmentTime: "9:00 AM",
-      reminderType: "24h Before",
-      status: "sent",
-      sentAt: "Feb 24, 2023 9:00 AM",
-    },
-    {
-      id: "5",
-      patient: "Lisa Anderson",
-      phone: "+1 (555) 876-5432",
-      appointmentDate: "Feb 25, 2023",
-      appointmentTime: "2:30 PM",
-      reminderType: "24h Before",
-      status: "sent",
-      sentAt: "Feb 24, 2023 2:30 PM",
-    },
-  ];
-
-  // Mock patient data for the dropdown
-  const patients = [
-    { id: "1", name: "John Smith", phone: "+1 (555) 123-4567" },
-    { id: "2", name: "Sarah Thompson", phone: "+1 (555) 234-5678" },
-    { id: "3", name: "Michael Rodriguez", phone: "+1 (555) 456-7890" },
-    { id: "4", name: "Emma Davis", phone: "+1 (555) 987-6543" },
-    { id: "5", name: "Lisa Anderson", phone: "+1 (555) 876-5432" },
-  ];
+  // Fetch follow-ups
+  const { data: followUps = [] } = useFollowUps();
 
   const handleReminderTypeChange = (value: string) => {
     setReminderType(value);
@@ -193,7 +141,13 @@ export default function RemindersPage() {
     setShowPatientResults(false);
   };
 
-  const filteredPatients = patients.filter(
+  const filteredPatients = [
+    { id: "1", name: "John Smith", phone: "+1 (555) 123-4567" },
+    { id: "2", name: "Sarah Thompson", phone: "+1 (555) 234-5678" },
+    { id: "3", name: "Michael Rodriguez", phone: "+1 (555) 456-7890" },
+    { id: "4", name: "Emma Davis", phone: "+1 (555) 987-6543" },
+    { id: "5", name: "Lisa Anderson", phone: "+1 (555) 876-5432" },
+  ].filter(
     (patient) =>
       patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
       patient.phone.includes(patientSearch)
@@ -246,6 +200,32 @@ export default function RemindersPage() {
 
     // Open the follow-up modal
     setFollowupModalOpen(true);
+  };
+
+  const handleCreateReminder = async (data: any) => {
+    try {
+      await createReminder({
+        appointmentId: data.appointmentId,
+        type: data.type,
+        message: data.message,
+        scheduledFor: new Date(data.scheduledFor),
+        method: data.method || "WHATSAPP",
+      });
+    } catch (error) {
+      console.error("Error creating reminder:", error);
+    }
+  };
+
+  const handleCreateFollowUp = async (data: any) => {
+    try {
+      await createFollowUp({
+        appointmentId: data.appointmentId,
+        scheduledFor: new Date(data.scheduledFor),
+        message: data.message,
+      });
+    } catch (error) {
+      console.error("Error creating follow-up:", error);
+    }
   };
 
   return (

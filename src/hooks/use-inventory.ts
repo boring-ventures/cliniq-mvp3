@@ -40,12 +40,12 @@ export function useInventory() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [showLowStock, setShowLowStock] = useState(false);
 
   // Fetch categories
   const {
-    data: categories = [],
+    data: categories = ["All Categories"],
     isLoading: isLoadingCategories,
     error: categoriesError,
   } = useQuery({
@@ -56,7 +56,7 @@ export function useInventory() {
         throw new Error("Failed to fetch categories");
       }
       const data = await response.json();
-      return Array.isArray(data) ? data : [];
+      return ["All Categories", ...(Array.isArray(data) ? data : [])];
     },
   });
 
@@ -94,11 +94,13 @@ export function useInventory() {
 
   // Filter out category placeholders and calculate low stock items
   const inventoryItems = useMemo(() => {
-    return items.filter(item => !item.isCategory) || [];
+    return items.filter((item) => !item.isCategory) || [];
   }, [items]);
 
   const lowStockItems = useMemo(() => {
-    return inventoryItems.filter(item => item.stockQuantity <= item.minStock) || [];
+    return (
+      inventoryItems.filter((item) => item.stockQuantity <= item.minStock) || []
+    );
   }, [inventoryItems]);
 
   // Create inventory item mutation

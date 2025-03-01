@@ -18,122 +18,26 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
+import { useAppointments } from "@/hooks/use-appointments";
 
 export default function AppointmentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [doctorFilter, setDoctorFilter] = useState("all");
 
-  // Mock appointment data
-  const appointments = [
-    {
-      id: "1",
-      patient: {
-        name: "Sarah Thompson",
-        avatar: "/avatars/01.png",
-        initials: "ST",
-      },
-      doctor: {
-        name: "Dr. Wilson",
-        specialty: "Dentist",
-      },
-      date: "Today",
-      time: "09:00 AM",
-      status: "confirmed",
-      reason: "Regular checkup",
-    },
-    {
-      id: "2",
-      patient: {
-        name: "Michael Rodriguez",
-        avatar: "/avatars/02.png",
-        initials: "MR",
-      },
-      doctor: {
-        name: "Dr. Chen",
-        specialty: "Orthodontist",
-      },
-      date: "Today",
-      time: "10:30 AM",
-      status: "pending",
-      reason: "Braces adjustment",
-    },
-    {
-      id: "3",
-      patient: {
-        name: "Emma Davis",
-        avatar: "/avatars/03.png",
-        initials: "ED",
-      },
-      doctor: {
-        name: "Dr. Brown",
-        specialty: "Periodontist",
-      },
-      date: "Today",
-      time: "11:45 AM",
-      status: "confirmed",
-      reason: "Gum treatment",
-    },
-    {
-      id: "4",
-      patient: {
-        name: "John Smith",
-        avatar: "/avatars/04.png",
-        initials: "JS",
-      },
-      doctor: {
-        name: "Dr. Wilson",
-        specialty: "Dentist",
-      },
-      date: "Tomorrow",
-      time: "10:00 AM",
-      status: "confirmed",
-      reason: "Tooth extraction",
-    },
-    {
-      id: "5",
-      patient: {
-        name: "Lisa Anderson",
-        avatar: "/avatars/05.png",
-        initials: "LA",
-      },
-      doctor: {
-        name: "Dr. Chen",
-        specialty: "Orthodontist",
-      },
-      date: "Tomorrow",
-      time: "02:30 PM",
-      status: "cancelled",
-      reason: "Consultation",
-    },
-  ];
+  const { useFilteredAppointments, deleteAppointment } = useAppointments();
 
-  // Filter appointments based on search query and filters
-  const filteredAppointments = appointments.filter((appointment) => {
-    // Search filter
-    const matchesSearch =
-      searchQuery === "" ||
-      appointment.patient.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      appointment.doctor.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      appointment.reason.toLowerCase().includes(searchQuery.toLowerCase());
-
-    // Status filter
-    const matchesStatus =
-      statusFilter === "all" || appointment.status === statusFilter;
-
-    // Doctor filter
-    const matchesDoctor =
-      doctorFilter === "all" ||
-      appointment.doctor.name
-        .toLowerCase()
-        .includes(doctorFilter.toLowerCase());
-
-    return matchesSearch && matchesStatus && matchesDoctor;
+  // Fetch appointments using the hook
+  const { data: appointments = [], isLoading } = useFilteredAppointments({
+    doctorId: doctorFilter !== "all" ? doctorFilter : undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
   });
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this appointment?")) {
+      await deleteAppointment(id);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -204,12 +108,12 @@ export default function AppointmentsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {filteredAppointments.length === 0 ? (
+                {appointments.length === 0 ? (
                   <div className="text-center py-4 text-muted-foreground">
                     No appointments found matching your criteria.
                   </div>
                 ) : (
-                  filteredAppointments.map((appointment) => (
+                  appointments.map((appointment) => (
                     <div
                       key={appointment.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"

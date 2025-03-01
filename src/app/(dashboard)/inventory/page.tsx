@@ -86,9 +86,10 @@ export default function InventoryPage() {
   const [newItemModalOpen, setNewItemModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(
-    null
-  );
+  const [itemToDelete, setItemToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const {
     formData,
@@ -109,7 +110,7 @@ export default function InventoryPage() {
   // Update the category filter dropdown with better null checking
   const filterCategories = useMemo(() => {
     if (!categories || isLoadingCategories) return [];
-    return categories.filter(cat => cat !== "All Categories");
+    return categories.filter((cat) => cat !== "All Categories");
   }, [categories, isLoadingCategories]);
 
   // Handle item creation
@@ -176,8 +177,8 @@ export default function InventoryPage() {
 
   // Add a helper function to format price
   const formatPrice = (price: number | string): string => {
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    return !isNaN(numPrice) ? numPrice.toFixed(2) : '0.00';
+    const numPrice = typeof price === "string" ? parseFloat(price) : price;
+    return !isNaN(numPrice) ? numPrice.toFixed(2) : "0.00";
   };
 
   // Handle new category creation
@@ -196,15 +197,17 @@ export default function InventoryPage() {
       }
 
       // Refresh categories
-      await queryClient.invalidateQueries({ queryKey: ["inventoryCategories"] });
-      
+      await queryClient.invalidateQueries({
+        queryKey: ["inventoryCategories"],
+      });
+
       // Update form data with new category
       handleSelectChange("category", category);
-      
+
       // Clear new category input
       setNewCategory("");
       setCategoryOpen(false);
-      
+
       toast({
         title: "Success",
         description: "Category created successfully",
@@ -249,16 +252,23 @@ export default function InventoryPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <div className="relative">
-                  <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Filter by category..."
-                    className="pl-8 w-[180px]"
-                    value={selectedCategory === "All Categories" ? "" : selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value || "All Categories")}
-                  />
-                </div>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                  disabled={isLoadingCategories}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Filter by category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories?.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button
                   variant={showLowStock ? "secondary" : "outline"}
                   onClick={() => setShowLowStock(!showLowStock)}
@@ -272,10 +282,7 @@ export default function InventoryPage() {
                   <Package className="h-3.5 w-3.5" />
                   <span>{inventoryItems.length} Items</span>
                 </Badge>
-                <Badge
-                  variant="destructive"
-                  className="flex gap-1"
-                >
+                <Badge variant="destructive" className="flex gap-1">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   <span>{lowStockItems.length} Low Stock</span>
                 </Badge>
@@ -391,14 +398,25 @@ export default function InventoryPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category *</Label>
-                <Input
-                  id="category"
-                  name="category"
+                <Select
                   value={getInputValue("category")}
-                  onChange={handleChange}
-                  placeholder="Enter category"
-                  required
-                />
+                  onValueChange={(value) =>
+                    handleSelectChange("category", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories
+                      ?.filter((cat) => cat !== "All Categories")
+                      .map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -518,7 +536,7 @@ export default function InventoryPage() {
                   Creating...
                 </>
               ) : (
-                'Create Item'
+                "Create Item"
               )}
             </Button>
           </DialogFooter>
@@ -546,8 +564,8 @@ export default function InventoryPage() {
             >
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={confirmDelete}
               disabled={isDeleting}
             >
@@ -578,7 +596,7 @@ export default function InventoryPage() {
                   Deleting...
                 </>
               ) : (
-                'Delete Item'
+                "Delete Item"
               )}
             </Button>
           </DialogFooter>
@@ -586,4 +604,4 @@ export default function InventoryPage() {
       </Dialog>
     </div>
   );
-} 
+}

@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL") // Ensure this is set in your .env file
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Ensure this is set in your .env file
   directUrl = env("DIRECT_URL")
 }
 
@@ -30,13 +30,13 @@ model Profile {
   updatedAt      DateTime @updatedAt
 
   // Staff-specific fields
-  specialty        String?
-  dateOfBirth      DateTime?
-  joinDate         DateTime?
-  phone            String?
-  address          String?
-  notes            String?
-  
+  specialty   String?
+  dateOfBirth DateTime?
+  joinDate    DateTime?
+  phone       String?
+  address     String?
+  notes       String?
+
   // Relations
   medicalNotes       MedicalNote[]
   appointments       Appointment[]
@@ -92,15 +92,19 @@ model Appointment {
   patientId   String
   doctorId    String
   scheduledAt DateTime
-  status      String   @default("SCHEDULED") // SCHEDULED, CANCELLED, COMPLETED
+  duration    Int      @default(30) // Duration in minutes
+  status      String   @default("SCHEDULED") // SCHEDULED, CONFIRMED, CANCELLED, COMPLETED, PENDING
   reason      String?
-  colorCode   String? // Hex color for doctor
+  colorCode   String? // Hex color for calendar display
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  patient Patient             @relation(fields: [patientId], references: [id])
-  doctor  Profile             @relation(fields: [doctorId], references: [id])
-  changes AppointmentChange[]
+  // Relations
+  patient   Patient               @relation(fields: [patientId], references: [id])
+  doctor    Profile               @relation(fields: [doctorId], references: [id])
+  changes   AppointmentChange[]
+  reminders AppointmentReminder[]
+  followUps FollowUpSchedule[]
 }
 
 model AppointmentChange {
@@ -116,20 +120,49 @@ model AppointmentChange {
   user        Profile?    @relation(fields: [changedBy], references: [id])
 }
 
-model InventoryItem {
+model AppointmentReminder {
+  id            String    @id @default(uuid())
+  appointmentId String
+  type          String // 24h_BEFORE, FOLLOWUP, CUSTOM
+  message       String
+  scheduledFor  DateTime
+  sentAt        DateTime?
+  status        String    @default("PENDING") // PENDING, SENT
+  method        String    @default("WHATSAPP") // WHATSAPP, SMS, EMAIL
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+}
+
+model FollowUpSchedule {
   id            String   @id @default(uuid())
-  name          String
-  category      String   
-  description   String?
-  stockQuantity Int      @default(0)
-  unit          String   @default("pcs")  
-  minStock      Int      @default(10)     
-  supplier      String?  
-  price         Decimal  @default(0)      
-  lastRestocked DateTime?
-  isCategory    Boolean  @default(false)  // Keep this field
+  appointmentId String
+  scheduledFor  DateTime
+  message       String
+  status        String   @default("PENDING") // PENDING, SENT, CANCELLED
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  // Relations
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+}
+
+model InventoryItem {
+  id            String    @id @default(uuid())
+  name          String
+  category      String
+  description   String?
+  stockQuantity Int       @default(0)
+  unit          String    @default("pcs")
+  minStock      Int       @default(10)
+  supplier      String?
+  price         Decimal   @default(0)
+  lastRestocked DateTime?
+  isCategory    Boolean   @default(false) // Keep this field
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   usageLogs      UsageLog[]
   purchaseOrders PurchaseOrderItem[]
@@ -231,14 +264,14 @@ model AuditLog {
 // New models for staff functionality
 
 model WorkingHours {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   profileId String
-  dayOfWeek String   // monday, tuesday, etc.
-  startTime String?  // Format: "09:00"
-  endTime   String?  // Format: "17:00"
-  
-  profile   Profile  @relation(fields: [profileId], references: [id])
-  
+  dayOfWeek String // monday, tuesday, etc.
+  startTime String? // Format: "09:00"
+  endTime   String? // Format: "17:00"
+
+  profile Profile @relation(fields: [profileId], references: [id])
+
   @@unique([profileId, dayOfWeek])
 }
 
@@ -248,19 +281,19 @@ model EmergencyContact {
   name         String
   relationship String?
   phone        String
-  
-  profile      Profile @relation(fields: [profileId], references: [id])
+
+  profile Profile @relation(fields: [profileId], references: [id])
 }
 
 model Qualification {
-  id           String   @id @default(uuid())
-  profileId    String
-  degree       String
-  institution  String
-  year         String
-  createdAt    DateTime @default(now())
-  
-  profile      Profile  @relation(fields: [profileId], references: [id])
+  id          String   @id @default(uuid())
+  profileId   String
+  degree      String
+  institution String
+  year        String
+  createdAt   DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id])
 }
 
 model StaffDocument {
@@ -271,24 +304,24 @@ model StaffDocument {
   fileType   String?
   fileSize   String?
   uploadDate DateTime @default(now())
-  
-  profile    Profile  @relation(fields: [profileId], references: [id])
+
+  profile Profile @relation(fields: [profileId], references: [id])
 }
 
 model Payroll {
-  id               String   @id @default(uuid())
-  profileId        String   @unique
+  id               String    @id @default(uuid())
+  profileId        String    @unique
   salary           Decimal
-  paymentFrequency String   // Weekly, Bi-weekly, Monthly
+  paymentFrequency String // Weekly, Bi-weekly, Monthly
   lastPayment      DateTime?
-  
+
   // Bank details
-  accountName      String?
-  accountNumber    String?
-  bankName         String?
-  
-  profile          Profile  @relation(fields: [profileId], references: [id])
-  payments         PayrollPayment[]
+  accountName   String?
+  accountNumber String?
+  bankName      String?
+
+  profile  Profile          @relation(fields: [profileId], references: [id])
+  payments PayrollPayment[]
 }
 
 model PayrollPayment {
@@ -297,6 +330,6 @@ model PayrollPayment {
   amount    Decimal
   paidAt    DateTime @default(now())
   notes     String?
-  
-  payroll   Payroll  @relation(fields: [payrollId], references: [id])
+
+  payroll Payroll @relation(fields: [payrollId], references: [id])
 }

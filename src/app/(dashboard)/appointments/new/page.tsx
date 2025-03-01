@@ -23,8 +23,10 @@ import { ArrowLeft, CalendarIcon, Search } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useAppointments } from "@/hooks/use-appointments";
 
 export default function NewAppointmentPage() {
+  const { createAppointment, isCreating } = useAppointments();
   const [date, setDate] = useState<Date>();
   const [patientSearch, setPatientSearch] = useState("");
   const [showPatientResults, setShowPatientResults] = useState(false);
@@ -34,6 +36,8 @@ export default function NewAppointmentPage() {
     phone: string;
   } | null>(null);
   const [contactPhone, setContactPhone] = useState("");
+  const [selectedDoctor, setSelectedDoctor] = useState("");
+  const [reason, setReason] = useState("");
 
   // Mock patient data
   const patients = [
@@ -87,6 +91,26 @@ export default function NewAppointmentPage() {
     };
   }, []);
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!_selectedPatient || !date) return;
+
+    try {
+      await createAppointment({
+        patientId: _selectedPatient.id,
+        doctorId: selectedDoctor,
+        scheduledAt: date,
+        duration: 30, // or get from form
+        status: "SCHEDULED",
+        reason,
+      });
+      
+      // Redirect to appointments list or show success message
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+    }
+  };
+
   return (
     <div className="bg-black text-white min-h-screen">
       <div className="container mx-auto py-6">
@@ -103,7 +127,7 @@ export default function NewAppointmentPage() {
           <CardContent className="p-6">
             <h2 className="text-xl font-bold mb-6">Appointment Details</h2>
 
-            <form className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="patient-search" className="text-white">
@@ -167,7 +191,7 @@ export default function NewAppointmentPage() {
                   <Label htmlFor="doctor" className="text-white">
                     Doctor
                   </Label>
-                  <Select>
+                  <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
                     <SelectTrigger
                       id="doctor"
                       className="bg-black border-gray-700 text-white"
@@ -315,6 +339,8 @@ export default function NewAppointmentPage() {
                 <Textarea
                   id="reason"
                   placeholder="Enter the reason for the appointment"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
                   className="min-h-[100px] bg-black border-gray-700 text-white"
                 />
               </div>
@@ -326,8 +352,8 @@ export default function NewAppointmentPage() {
                 >
                   Cancel
                 </Button>
-                <Button className="bg-white text-black hover:bg-gray-200">
-                  Create Appointment
+                <Button type="submit" disabled={isCreating} className="bg-white text-black hover:bg-gray-200">
+                  {isCreating ? "Creating..." : "Create Appointment"}
                 </Button>
               </div>
             </form>
