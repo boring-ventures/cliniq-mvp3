@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -14,6 +14,7 @@ export interface InventoryItem {
   supplier?: string;
   price: number;
   lastRestocked?: Date;
+  isCategory: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,67 +37,93 @@ export interface StockAdjustment {
 
 // Main hook for inventory management
 export function useInventory() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [showLowStock, setShowLowStock] = useState(false);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // Fetch inventory items with filters
+  // Fetch categories
   const {
-    data: inventoryItems = [],
-    isLoading,
-    error,
-    refetch,
+    data: rawCategories,
+    isLoading: isLoadingCategories,
+    error: categoriesError,
+  } = useQuery({
+    queryKey: ["inventoryCategories"],
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/inventory/categories");
+        if (!response.ok) {
+          throw new Error("Failed to fetch categories");
+        }
+        const data = await response.json();
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        return [];
+      }
+    },
+  });
+
+  // Ensure categories always includes "All Categories" and is never undefined
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(["All Categories", ...(rawCategories || [])]));
+    return uniqueCategories;
+  }, [rawCategories]);
+
+  // Fetch inventory items
+  const {
+    data: items = [],
+    isLoading: isLoadingItems,
+    error: itemsError,
   } = useQuery({
     queryKey: ["inventory", selectedCategory, searchQuery, showLowStock],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (selectedCategory !== "All Categories") {
-        params.append("category", selectedCategory);
-      }
-      if (searchQuery) {
-        params.append("search", searchQuery);
-      }
-      if (showLowStock) {
-        params.append("lowStock", "true");
-      }
+      try {
+        const params = new URLSearchParams();
+        if (selectedCategory !== "All Categories") {
+          params.append("category", selectedCategory);
+        }
+        if (searchQuery) {
+          params.append("search", searchQuery);
+        }
+        if (showLowStock) {
+          params.append("lowStock", "true");
+        }
 
-      const response = await fetch(`/api/inventory?${params.toString()}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to fetch inventory items");
+        const response = await fetch(`/api/inventory?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch inventory items");
+        }
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching inventory items:", error);
+        return [];
       }
-      return response.json();
     },
   });
 
-  // Fetch categories
-  const { data: categories = ["All Categories"] } = useQuery({
-    queryKey: ["inventoryCategories"],
-    queryFn: async () => {
-      const response = await fetch("/api/inventory/categories");
-      if (!response.ok) {
-        throw new Error("Failed to fetch categories");
-      }
-      return response.json();
-    },
-  });
+  // Filter out category placeholders and calculate low stock items
+  const inventoryItems = useMemo(() => {
+    return items.filter(item => !item.isCategory) || [];
+  }, [items]);
 
-  // Create a new inventory item
+  const lowStockItems = useMemo(() => {
+    return inventoryItems.filter(item => item.stockQuantity <= item.minStock) || [];
+  }, [inventoryItems]);
+
+  // Create inventory item mutation
   const createInventoryItem = useMutation({
     mutationFn: async (newItem: NewInventoryItem) => {
       const response = await fetch("/api/inventory", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newItem),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to create inventory item");
+        throw new Error(error.error || "Failed to create item");
       }
 
       return response.json();
@@ -104,61 +131,10 @@ export function useInventory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["inventoryCategories"] });
-      toast({
-        title: "Success",
-        description: "Inventory item created successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
     },
   });
 
-  // Update an inventory item
-  const updateInventoryItem = useMutation({
-    mutationFn: async ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: Partial<NewInventoryItem>;
-    }) => {
-      const response = await fetch(`/api/inventory/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update inventory item");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      toast({
-        title: "Success",
-        description: "Inventory item updated successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    },
-  });
-
-  // Delete an inventory item
+  // Delete inventory item mutation
   const deleteInventoryItem = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/inventory/${id}`, {
@@ -167,88 +143,30 @@ export function useInventory() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to delete inventory item");
+        throw new Error(error.error || "Failed to delete item");
       }
 
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      toast({
-        title: "Success",
-        description: "Inventory item deleted successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
     },
   });
-
-  // Adjust inventory stock
-  const adjustStock = useMutation({
-    mutationFn: async ({
-      id,
-      adjustment,
-    }: {
-      id: string;
-      adjustment: StockAdjustment;
-    }) => {
-      const response = await fetch(`/api/inventory/${id}/adjust`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(adjustment),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to adjust stock");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      toast({
-        title: "Success",
-        description: "Stock adjusted successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    },
-  });
-
-  // Get low stock items
-  const lowStockItems = inventoryItems.filter(
-    (item: InventoryItem) => item.stockQuantity <= item.minStock
-  );
 
   return {
     inventoryItems,
-    isLoading,
-    error,
-    refetch,
-    searchQuery,
-    setSearchQuery,
+    isLoading: isLoadingItems || isLoadingCategories,
+    error: itemsError || categoriesError,
+    categories,
     selectedCategory,
     setSelectedCategory,
+    searchQuery,
+    setSearchQuery,
     showLowStock,
     setShowLowStock,
-    categories,
-    lowStockItems,
     createInventoryItem,
-    updateInventoryItem,
     deleteInventoryItem,
-    adjustStock,
+    lowStockItems,
+    isLoadingCategories,
   };
 }

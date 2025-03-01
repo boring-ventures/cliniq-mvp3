@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { InventoryItem, NewInventoryItem } from "./use-inventory";
 
 // Initial state for a new inventory item
@@ -14,6 +15,7 @@ const initialState: NewInventoryItem = {
 };
 
 export function useInventoryForm(existingItem?: InventoryItem) {
+  const queryClient = useQueryClient();
   // Initialize state with existing item data or default values
   const [formData, setFormData] = useState<NewInventoryItem>(
     existingItem
@@ -21,11 +23,11 @@ export function useInventoryForm(existingItem?: InventoryItem) {
           name: existingItem.name,
           category: existingItem.category,
           description: existingItem.description || "",
-          quantity: existingItem.stockQuantity || 0,
-          unit: existingItem.unit || "pcs",
-          minStock: existingItem.minStock || 10,
+          quantity: existingItem.stockQuantity,
+          unit: existingItem.unit,
+          minStock: existingItem.minStock,
           supplier: existingItem.supplier || "",
-          price: Number(existingItem.price) || 0,
+          price: Number(existingItem.price),
         }
       : initialState
   );
@@ -37,71 +39,36 @@ export function useInventoryForm(existingItem?: InventoryItem) {
     >
   ) => {
     const { name, value } = e.target;
-
-    // Handle numeric fields
-    if (name === "quantity" || name === "minStock" || name === "price") {
-      const numValue = value === "" ? 0 : Number(value);
-      setFormData({
-        ...formData,
-        [name]: isNaN(numValue) ? 0 : numValue,
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value,
-      });
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === "quantity" || name === "minStock" || name === "price"
+        ? Number(value)
+        : value,
+    }));
   };
 
   // Handle select changes
   const handleSelectChange = (name: string, value: string) => {
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: value,
-    });
+    }));
   };
 
   // Reset form to initial state or existing item
   const resetForm = () => {
-    setFormData(
-      existingItem
-        ? {
-            name: existingItem.name,
-            category: existingItem.category,
-            description: existingItem.description || "",
-            quantity: existingItem.stockQuantity || 0,
-            unit: existingItem.unit || "pcs",
-            minStock: existingItem.minStock || 10,
-            supplier: existingItem.supplier || "",
-            price: Number(existingItem.price) || 0,
-          }
-        : initialState
-    );
+    setFormData(initialState);
   };
 
   // Validate form data
-  const validateForm = (): { valid: boolean; errors: string[] } => {
+  const validateForm = () => {
     const errors: string[] = [];
 
-    if (!formData.name.trim()) {
-      errors.push("Name is required");
-    }
-
-    if (!formData.category.trim()) {
-      errors.push("Category is required");
-    }
-
-    if (formData.quantity < 0) {
-      errors.push("Quantity cannot be negative");
-    }
-
-    if (formData.minStock < 0) {
-      errors.push("Minimum stock level cannot be negative");
-    }
-
-    if (formData.price < 0) {
-      errors.push("Price cannot be negative");
-    }
+    if (!formData.name) errors.push("Name is required");
+    if (!formData.category) errors.push("Category is required");
+    if (formData.quantity < 0) errors.push("Quantity cannot be negative");
+    if (formData.minStock < 0) errors.push("Minimum stock cannot be negative");
+    if (formData.price < 0) errors.push("Price cannot be negative");
 
     return {
       valid: errors.length === 0,
@@ -113,7 +80,7 @@ export function useInventoryForm(existingItem?: InventoryItem) {
   const getInputValue = (field: keyof NewInventoryItem) => {
     const value = formData[field];
     if (typeof value === "number") {
-      return isNaN(value) ? "" : value.toString();
+      return value.toString();
     }
     return value || "";
   };
