@@ -39,17 +39,18 @@ export function useInventoryForm(existingItem?: InventoryItem) {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: name === "quantity" || name === "minStock" || name === "price"
-        ? Number(value)
-        : value,
+      [name]:
+        name === "quantity" || name === "minStock" || name === "price"
+          ? Number(value)
+          : value,
     }));
   };
 
   // Handle select changes
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));

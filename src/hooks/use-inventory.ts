@@ -40,36 +40,25 @@ export function useInventory() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [showLowStock, setShowLowStock] = useState(false);
 
   // Fetch categories
   const {
-    data: rawCategories,
+    data: categories = [],
     isLoading: isLoadingCategories,
     error: categoriesError,
   } = useQuery({
     queryKey: ["inventoryCategories"],
     queryFn: async () => {
-      try {
-        const response = await fetch("/api/inventory/categories");
-        if (!response.ok) {
-          throw new Error("Failed to fetch categories");
-        }
-        const data = await response.json();
-        return data || [];
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-        return [];
+      const response = await fetch("/api/inventory/categories");
+      if (!response.ok) {
+        throw new Error("Failed to fetch categories");
       }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
   });
-
-  // Ensure categories always includes "All Categories" and is never undefined
-  const categories = useMemo(() => {
-    const uniqueCategories = Array.from(new Set(["All Categories", ...(rawCategories || [])]));
-    return uniqueCategories;
-  }, [rawCategories]);
 
   // Fetch inventory items
   const {

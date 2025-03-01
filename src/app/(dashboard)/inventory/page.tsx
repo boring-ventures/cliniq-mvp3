@@ -249,24 +249,16 @@ export default function InventoryPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                  disabled={isLoadingCategories}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Filter by category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="All Categories">All Categories</SelectItem>
-                    {!isLoadingCategories && filterCategories?.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Filter by category..."
+                    className="pl-8 w-[180px]"
+                    value={selectedCategory === "All Categories" ? "" : selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value || "All Categories")}
+                  />
+                </div>
                 <Button
                   variant={showLowStock ? "secondary" : "outline"}
                   onClick={() => setShowLowStock(!showLowStock)}
@@ -399,66 +391,14 @@ export default function InventoryPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category *</Label>
-                <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={categoryOpen}
-                      className="w-full justify-between"
-                      disabled={isLoadingCategories}
-                    >
-                      {isLoadingCategories 
-                        ? "Loading categories..." 
-                        : getInputValue("category") || "Select category..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput
-                        placeholder="Search or create category..."
-                        value={newCategory}
-                        onValueChange={setNewCategory}
-                      />
-                      <CommandEmpty>
-                        {newCategory && (
-                          <div className="p-2">
-                            <Button
-                              variant="outline"
-                              className="w-full justify-start"
-                              onClick={() => handleCreateCategory(newCategory)}
-                            >
-                              Create "{newCategory}"
-                            </Button>
-                          </div>
-                        )}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {!isLoadingCategories && filterCategories?.map((category) => (
-                          <CommandItem
-                            key={category}
-                            value={category}
-                            onSelect={() => {
-                              handleSelectChange("category", category);
-                              setCategoryOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                getInputValue("category") === category
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            {category}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Input
+                  id="category"
+                  name="category"
+                  value={getInputValue("category")}
+                  onChange={handleChange}
+                  placeholder="Enter category"
+                  required
+                />
               </div>
             </div>
 
