@@ -38,7 +38,6 @@ model Profile {
 
   // Relations
   medicalNotes       MedicalNote[]
-  appointments       Appointment[]
   auditLogs          AuditLog[]
   appointmentChanges AppointmentChange[]
   usageLogs          UsageLog[]
@@ -48,21 +47,29 @@ model Profile {
   qualifications     Qualification[]
   documents          StaffDocument[]
   payroll            Payroll?
+  doctorAppointments Appointment[] @relation("DoctorAppointments")
 }
 
 model Patient {
-  id               String   @id @default(uuid())
+  id               String        @id @default(cuid())
   firstName        String
   lastName         String
+  email            String?       @unique
   phone            String?
-  emergencyContact String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  dateOfBirth      DateTime?
+  address          String?
+  appointments     Appointment[]
+  files            PatientFile[]
+  medicalNotes     MedicalNote[]
+  invoices         Invoice[]
+  medicalHistory   String?       @db.Text
+  emergencyContact Json? // Store emergency contact details
+  isActive         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  appointments Appointment[]
-  medicalNotes MedicalNote[]
-  invoices     Invoice[]
-  patientFiles PatientFile[]
+  @@index([firstName, lastName])
+  @@index([email])
 }
 
 model PatientFile {
@@ -87,20 +94,25 @@ model MedicalNote {
 }
 
 model Appointment {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
+  patient     Patient  @relation(fields: [patientId], references: [id])
   patientId   String
+  doctor      Profile  @relation("DoctorAppointments", fields: [doctorId], references: [id])
   doctorId    String
   scheduledAt DateTime
-  duration    Int      @default(30) // Duration in minutes
-  status      String   @default("SCHEDULED") // SCHEDULED, CONFIRMED, CANCELLED, COMPLETED, PENDING
-  reason      String?
-  colorCode   String? // Hex color for calendar display
+  duration    Int      @default(30) // in minutes
+  status      String   @default("SCHEDULED") // SCHEDULED, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW
+  type        String   // Regular checkup, Emergency, Follow-up, etc.
+  reason      String?  @db.Text
+  notes       String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations
-  patient   Patient               @relation(fields: [patientId], references: [id])
-  doctor    Profile               @relation(fields: [doctorId], references: [id])
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([scheduledAt])
+
+  // Relations for tracking changes and follow-ups
   changes   AppointmentChange[]
   reminders AppointmentReminder[]
   followUps FollowUpSchedule[]

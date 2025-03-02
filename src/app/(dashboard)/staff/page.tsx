@@ -547,22 +547,49 @@ export default function StaffPage() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Working Hours</h3>
                   <div className="space-y-4">
-                    {["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"].map((day, index) => (
-                      <div key={day} className="grid grid-cols-[120px,1fr,1fr] gap-4 items-center">
+                    {[
+                      "MONDAY",
+                      "TUESDAY",
+                      "WEDNESDAY",
+                      "THURSDAY",
+                      "FRIDAY",
+                      "SATURDAY",
+                      "SUNDAY",
+                    ].map((day, index) => (
+                      <div
+                        key={day}
+                        className="grid grid-cols-[120px,1fr,1fr] gap-4 items-center"
+                      >
                         <div className="flex items-center gap-2">
                           <Switch
-                            checked={!!formData.workingHours?.[index]?.startTime}
+                            checked={
+                              !!formData.workingHours?.[index]?.startTime
+                            }
                             onCheckedChange={(checked) => {
                               const newTime = checked ? "09:00" : "";
-                              handleWorkingHoursChange(index, "startTime", newTime);
-                              handleWorkingHoursChange(index, "endTime", checked ? "17:00" : "");
+                              handleWorkingHoursChange(
+                                index,
+                                "startTime",
+                                newTime
+                              );
+                              handleWorkingHoursChange(
+                                index,
+                                "endTime",
+                                checked ? "17:00" : ""
+                              );
                             }}
                           />
-                          <span>{day.charAt(0) + day.slice(1).toLowerCase()}</span>
+                          <span>
+                            {day.charAt(0) + day.slice(1).toLowerCase()}
+                          </span>
                         </div>
                         <Select
-                          value={formData.workingHours?.[index]?.startTime || ""}
-                          onValueChange={(value) => handleWorkingHoursChange(index, "startTime", value)}
+                          value={
+                            formData.workingHours?.[index]?.startTime || ""
+                          }
+                          onValueChange={(value) =>
+                            handleWorkingHoursChange(index, "startTime", value)
+                          }
                           disabled={!formData.workingHours?.[index]?.startTime}
                         >
                           <SelectTrigger>
@@ -570,18 +597,22 @@ export default function StaffPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {Array.from({ length: 24 }, (_, i) => {
-                              const hour = i.toString().padStart(2, '0');
+                              const hour = i.toString().padStart(2, "0");
                               return [`${hour}:00`, `${hour}:30`];
-                            }).flat().map((time) => (
-                              <SelectItem key={time} value={time}>
-                                {time}
-                              </SelectItem>
-                            ))}
+                            })
+                              .flat()
+                              .map((time) => (
+                                <SelectItem key={time} value={time}>
+                                  {time}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                         <Select
                           value={formData.workingHours?.[index]?.endTime || ""}
-                          onValueChange={(value) => handleWorkingHoursChange(index, "endTime", value)}
+                          onValueChange={(value) =>
+                            handleWorkingHoursChange(index, "endTime", value)
+                          }
                           disabled={!formData.workingHours?.[index]?.startTime}
                         >
                           <SelectTrigger>
@@ -589,13 +620,15 @@ export default function StaffPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {Array.from({ length: 24 }, (_, i) => {
-                              const hour = i.toString().padStart(2, '0');
+                              const hour = i.toString().padStart(2, "0");
                               return [`${hour}:00`, `${hour}:30`];
-                            }).flat().map((time) => (
-                              <SelectItem key={time} value={time}>
-                                {time}
-                              </SelectItem>
-                            ))}
+                            })
+                              .flat()
+                              .map((time) => (
+                                <SelectItem key={time} value={time}>
+                                  {time}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -620,16 +653,18 @@ export default function StaffPage() {
                               name: "payroll",
                               value: {
                                 ...formData.payroll,
-                                salary: isNaN(value) ? 0 : value
-                              }
-                            }
+                                salary: isNaN(value) ? 0 : value,
+                              },
+                            },
                           } as any);
                         }}
                         placeholder="Enter salary amount"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="paymentFrequency">Payment Frequency</Label>
+                      <Label htmlFor="paymentFrequency">
+                        Payment Frequency
+                      </Label>
                       <Select
                         value={formData.payroll?.paymentFrequency || "Monthly"}
                         onValueChange={(value) => {
@@ -638,9 +673,9 @@ export default function StaffPage() {
                               name: "payroll",
                               value: {
                                 ...formData.payroll,
-                                paymentFrequency: value
-                              }
-                            }
+                                paymentFrequency: value,
+                              },
+                            },
                           } as any);
                         }}
                       >
@@ -664,7 +699,9 @@ export default function StaffPage() {
                         <Label htmlFor="accountName">Account Name</Label>
                         <Input
                           id="accountName"
-                          value={formData.payroll?.bankDetails?.accountName || ""}
+                          value={
+                            formData.payroll?.bankDetails?.accountName || ""
+                          }
                           onChange={(e) => {
                             handleInputChange({
                               target: {
@@ -673,10 +710,10 @@ export default function StaffPage() {
                                   ...formData.payroll,
                                   bankDetails: {
                                     ...formData.payroll?.bankDetails,
-                                    accountName: e.target.value
-                                  }
-                                }
-                              }
+                                    accountName: e.target.value,
+                                  },
+                                },
+                              },
                             } as any);
                           }}
                         />
@@ -685,7 +722,9 @@ export default function StaffPage() {
                         <Label htmlFor="accountNumber">Account Number</Label>
                         <Input
                           id="accountNumber"
-                          value={formData.payroll?.bankDetails?.accountNumber || ""}
+                          value={
+                            formData.payroll?.bankDetails?.accountNumber || ""
+                          }
                           onChange={(e) => {
                             handleInputChange({
                               target: {
@@ -694,10 +733,10 @@ export default function StaffPage() {
                                   ...formData.payroll,
                                   bankDetails: {
                                     ...formData.payroll?.bankDetails,
-                                    accountNumber: e.target.value
-                                  }
-                                }
-                              }
+                                    accountNumber: e.target.value,
+                                  },
+                                },
+                              },
                             } as any);
                           }}
                         />
@@ -715,10 +754,10 @@ export default function StaffPage() {
                                   ...formData.payroll,
                                   bankDetails: {
                                     ...formData.payroll?.bankDetails,
-                                    bankName: e.target.value
-                                  }
-                                }
-                              }
+                                    bankName: e.target.value,
+                                  },
+                                },
+                              },
                             } as any);
                           }}
                         />

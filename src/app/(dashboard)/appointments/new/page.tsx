@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useRouter } from "next/navigation";
+import { useStaff } from "@/hooks/use-staff";
+import { usePatients } from "@/hooks/use-patients";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,7 +31,24 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useAppointments } from "@/hooks/use-appointments";
 
+// Validation schema
+const appointmentSchema = z.object({
+  patientId: z.string().min(1, "Patient is required"),
+  doctorId: z.string().min(1, "Doctor is required"),
+  scheduledAt: z.string().min(1, "Date and time are required"),
+  duration: z.number().min(15, "Minimum duration is 15 minutes"),
+  type: z.string().min(1, "Appointment type is required"),
+  reason: z.string().optional(),
+  notes: z.string().optional(),
+  status: z.enum(["SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"]),
+});
+
+type AppointmentFormData = z.infer<typeof appointmentSchema>;
+
 export default function NewAppointmentPage() {
+  const router = useRouter();
+  const { staffMembers } = useStaff();
+  const { patients } = usePatients();
   const { createAppointment, isCreating } = useAppointments();
   const [date, setDate] = useState<Date>();
   const [patientSearch, setPatientSearch] = useState("");
@@ -39,22 +62,28 @@ export default function NewAppointmentPage() {
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [reason, setReason] = useState("");
 
-  // Mock patient data
-  const patients = [
-    { id: "1", name: "John Smith", phone: "+1 (555) 123-4567" },
-    { id: "2", name: "Sarah Thompson", phone: "+1 (555) 234-5678" },
-    { id: "3", name: "Michael Rodriguez", phone: "+1 (555) 456-7890" },
-    { id: "4", name: "Emma Davis", phone: "+1 (555) 987-6543" },
-    { id: "5", name: "Lisa Anderson", phone: "+1 (555) 876-5432" },
-  ];
+  // Get only active doctors
+  const doctors = staffMembers?.filter(
+    staff => staff.role === "DOCTOR" && staff.isActive
+  ) || [];
 
-  // Mock doctor data
-  const doctors = [
-    { id: "1", name: "Dr. Wilson", specialty: "General Dentist" },
-    { id: "2", name: "Dr. Chen", specialty: "Orthodontist" },
-    { id: "3", name: "Dr. Patel", specialty: "Periodontist" },
-    { id: "4", name: "Dr. Johnson", specialty: "Oral Surgeon" },
-  ];
+  // Get only active patients
+  const activePatients = patients?.filter(
+    patient => patient.isActive
+  ) || [];
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+  } = useForm<AppointmentFormData>({
+    resolver: zodResolver(appointmentSchema),
+    defaultValues: {
+      duration: 30,
+      status: "SCHEDULED",
+    },
+  });
 
   const handlePatientSelect = (patient: {
     id: string;
@@ -67,7 +96,7 @@ export default function NewAppointmentPage() {
     setShowPatientResults(false);
   };
 
-  const filteredPatients = patients.filter(
+  const filteredPatients = activePatients.filter(
     (patient) =>
       patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
       patient.phone.includes(patientSearch)
@@ -91,21 +120,23 @@ export default function NewAppointmentPage() {
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!_selectedPatient || !date) return;
-
+  const onSubmit = async (data: AppointmentFormData) => {
     try {
-      await createAppointment({
-        patientId: _selectedPatient.id,
-        doctorId: selectedDoctor,
-        scheduledAt: date,
-        duration: 30, // or get from form
-        status: "SCHEDULED",
-        reason,
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data,
+          scheduledAt: new Date(data.scheduledAt).toISOString(),
+        }),
       });
-      
-      // Redirect to appointments list or show success message
+
+      if (!response.ok) {
+        throw new Error("Failed to create appointment");
+      }
+
+      router.push("/appointments");
+      router.refresh();
     } catch (error) {
       console.error("Error creating appointment:", error);
     }
@@ -127,233 +158,118 @@ export default function NewAppointmentPage() {
           <CardContent className="p-6">
             <h2 className="text-xl font-bold mb-6">Appointment Details</h2>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="patient-search" className="text-white">
-                    Patient
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="patient-search"
-                      placeholder="Search patient by name or phone"
-                      value={patientSearch}
-                      onChange={(e) => {
-                        setPatientSearch(e.target.value);
-                        setShowPatientResults(true);
-                        if (e.target.value === "") {
-                          setSelectedPatient(null);
-                          setContactPhone("");
-                        }
-                      }}
-                      onFocus={() => setShowPatientResults(true)}
-                      className="pr-10 bg-black border-gray-700 text-white"
-                    />
-                    <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
-
-                    {showPatientResults && patientSearch && (
-                      <div className="absolute z-10 mt-1 w-full rounded-md bg-gray-900 border border-gray-700 shadow-md">
-                        <ul className="max-h-60 overflow-auto rounded-md py-1 text-base">
-                          {filteredPatients.length > 0 ? (
-                            filteredPatients.map((patient) => (
-                              <li
-                                key={patient.id}
-                                className="relative cursor-pointer select-none py-2 px-3 hover:bg-gray-800"
-                                onClick={() => handlePatientSelect(patient)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter")
-                                    handlePatientSelect(patient);
-                                }}
-                                tabIndex={0}
-                              >
-                                <div className="flex justify-between">
-                                  <span className="font-medium">
-                                    {patient.name}
-                                  </span>
-                                  <span className="text-gray-400">
-                                    {patient.phone}
-                                  </span>
-                                </div>
-                              </li>
-                            ))
-                          ) : (
-                            <li className="relative cursor-default select-none py-2 px-3 text-gray-400">
-                              No patients found
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="doctor" className="text-white">
-                    Doctor
-                  </Label>
-                  <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
-                    <SelectTrigger
-                      id="doctor"
-                      className="bg-black border-gray-700 text-white"
-                    >
-                      <SelectValue placeholder="Select doctor" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                      {doctors.map((doctor) => (
-                        <SelectItem key={doctor.id} value={doctor.id}>
-                          {doctor.name} ({doctor.specialty})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="contact-phone" className="text-white">
-                    Contact Phone
-                  </Label>
-                  <Input
-                    id="contact-phone"
-                    placeholder="Enter contact phone number"
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    className="bg-black border-gray-700 text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="date" className="text-white">
-                    Date
-                  </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="date"
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal bg-black border-gray-700",
-                          !date && "text-gray-400"
-                        )}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="patientId">Patient</Label>
+                <Select {...register("patientId")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select patient" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activePatients.map((patient) => (
+                      <SelectItem 
+                        key={patient.id} 
+                        value={patient.id}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-gray-900 border-gray-700">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                        className="bg-gray-900 text-white"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="time" className="text-white">
-                    Time
-                  </Label>
-                  <Select>
-                    <SelectTrigger
-                      id="time"
-                      className="bg-black border-gray-700 text-white"
-                    >
-                      <SelectValue placeholder="Select time" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                      <SelectItem value="9:00">09:00 AM</SelectItem>
-                      <SelectItem value="9:30">09:30 AM</SelectItem>
-                      <SelectItem value="10:00">10:00 AM</SelectItem>
-                      <SelectItem value="10:30">10:30 AM</SelectItem>
-                      <SelectItem value="11:00">11:00 AM</SelectItem>
-                      <SelectItem value="11:30">11:30 AM</SelectItem>
-                      <SelectItem value="12:00">12:00 PM</SelectItem>
-                      <SelectItem value="12:30">12:30 PM</SelectItem>
-                      <SelectItem value="13:00">01:00 PM</SelectItem>
-                      <SelectItem value="13:30">01:30 PM</SelectItem>
-                      <SelectItem value="14:00">02:00 PM</SelectItem>
-                      <SelectItem value="14:30">02:30 PM</SelectItem>
-                      <SelectItem value="15:00">03:00 PM</SelectItem>
-                      <SelectItem value="15:30">03:30 PM</SelectItem>
-                      <SelectItem value="16:00">04:00 PM</SelectItem>
-                      <SelectItem value="16:30">04:30 PM</SelectItem>
-                      <SelectItem value="17:00">05:00 PM</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                        {`${patient.firstName} ${patient.lastName}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.patientId && (
+                  <p className="text-sm text-red-500">{errors.patientId.message}</p>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="duration" className="text-white">
-                    Duration
-                  </Label>
-                  <Select defaultValue="30">
-                    <SelectTrigger
-                      id="duration"
-                      className="bg-black border-gray-700 text-white"
-                    >
-                      <SelectValue placeholder="Select duration" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                      <SelectItem value="15">15 minutes</SelectItem>
-                      <SelectItem value="30">30 minutes</SelectItem>
-                      <SelectItem value="45">45 minutes</SelectItem>
-                      <SelectItem value="60">1 hour</SelectItem>
-                      <SelectItem value="90">1.5 hours</SelectItem>
-                      <SelectItem value="120">2 hours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="doctorId">Doctor</Label>
+                <Select {...register("doctorId")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select doctor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctors.map((doctor) => (
+                      <SelectItem 
+                        key={doctor.id} 
+                        value={doctor.id}
+                      >
+                        {`${doctor.firstName} ${doctor.lastName} - ${doctor.specialty || 'General'}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.doctorId && (
+                  <p className="text-sm text-red-500">{errors.doctorId.message}</p>
+                )}
+              </div>
 
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="status" className="text-white">
-                    Status
-                  </Label>
-                  <Select defaultValue="confirmed">
-                    <SelectTrigger
-                      id="status"
-                      className="bg-black border-gray-700 text-white"
-                    >
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="scheduledAt">Date and Time</Label>
+                  <Input
+                    type="datetime-local"
+                    {...register("scheduledAt")}
+                  />
+                  {errors.scheduledAt && (
+                    <p className="text-sm text-red-500">{errors.scheduledAt.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Duration (minutes)</Label>
+                  <Input
+                    type="number"
+                    {...register("duration", { valueAsNumber: true })}
+                  />
+                  {errors.duration && (
+                    <p className="text-sm text-red-500">{errors.duration.message}</p>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reason" className="text-white">
-                  Reason for Visit
-                </Label>
-                <Textarea
-                  id="reason"
-                  placeholder="Enter the reason for the appointment"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  className="min-h-[100px] bg-black border-gray-700 text-white"
-                />
+                <Label htmlFor="type">Appointment Type</Label>
+                <Select {...register("type")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CHECKUP">Regular Checkup</SelectItem>
+                    <SelectItem value="EMERGENCY">Emergency</SelectItem>
+                    <SelectItem value="FOLLOW_UP">Follow-up</SelectItem>
+                    <SelectItem value="CONSULTATION">Consultation</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.type && (
+                  <p className="text-sm text-red-500">{errors.type.message}</p>
+                )}
               </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="reason">Reason for Visit</Label>
+                <Textarea {...register("reason")} />
+                {errors.reason && (
+                  <p className="text-sm text-red-500">{errors.reason.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Additional Notes</Label>
+                <Textarea {...register("notes")} />
+                {errors.notes && (
+                  <p className="text-sm text-red-500">{errors.notes.message}</p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-4">
                 <Button
+                  type="button"
                   variant="outline"
-                  className="border-gray-700 text-white hover:bg-gray-800"
+                  onClick={() => router.back()}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isCreating} className="bg-white text-black hover:bg-gray-200">
-                  {isCreating ? "Creating..." : "Create Appointment"}
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Creating..." : "Create Appointment"}
                 </Button>
               </div>
             </form>
