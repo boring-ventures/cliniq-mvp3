@@ -1,186 +1,222 @@
 import { useState } from 'react';
-import { StaffMember, NewStaffMember } from './use-staff';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/use-toast";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
-// Default empty staff member for new staff creation
-const defaultNewStaff: NewStaffMember = {
-  name: '',
+interface StaffFormData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'USER';
+  specialty?: string;
+  dateOfBirth?: string;
+  joinDate?: string;
+  phone?: string;
+  address?: string;
+  notes?: string;
+  workingHours?: Array<{
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+  }>;
+  emergencyContact?: {
+    name: string;
+    relationship?: string;
+    phone: string;
+  };
+  qualifications?: Array<{
+    degree: string;
+    institution: string;
+    year: string;
+  }>;
+  status?: 'active' | 'inactive';
+  payroll?: {
+    salary: number;
+    paymentFrequency: string;
+    bankDetails: {
+      accountName: string;
+      accountNumber: string;
+      bankName: string;
+    };
+  };
+}
+
+export const defaultFormData: StaffFormData = {
+  email: '',
+  password: '',
+  firstName: '',
+  lastName: '',
   role: 'DOCTOR',
   specialty: '',
   phone: '',
-  email: '',
-  status: 'active',
-  avatar: '',
+  address: '',
+  notes: '',
   dateOfBirth: '',
   joinDate: new Date().toISOString().split('T')[0],
-  workingHours: {
-    monday: { start: '09:00', end: '17:00' },
-    tuesday: { start: '09:00', end: '17:00' },
-    wednesday: { start: '09:00', end: '17:00' },
-    thursday: { start: '09:00', end: '17:00' },
-    friday: { start: '09:00', end: '17:00' },
-    saturday: { start: '', end: '' },
-    sunday: { start: '', end: '' },
-  },
-  address: '',
+  workingHours: [
+    { dayOfWeek: 'MONDAY', startTime: '09:00', endTime: '17:00' },
+    { dayOfWeek: 'TUESDAY', startTime: '09:00', endTime: '17:00' },
+    { dayOfWeek: 'WEDNESDAY', startTime: '09:00', endTime: '17:00' },
+    { dayOfWeek: 'THURSDAY', startTime: '09:00', endTime: '17:00' },
+    { dayOfWeek: 'FRIDAY', startTime: '09:00', endTime: '17:00' },
+  ],
   emergencyContact: {
     name: '',
     relationship: '',
     phone: '',
   },
   qualifications: [],
-  notes: '',
-  documents: [],
+  status: 'active',
   payroll: {
     salary: 0,
     paymentFrequency: 'Monthly',
-    lastPayment: '',
     bankDetails: {
       accountName: '',
       accountNumber: '',
       bankName: '',
     },
   },
-  password: '',
 };
 
-export function useStaffForm(initialStaff?: StaffMember) {
-  // If initialStaff is provided, we're editing an existing staff member
-  // Otherwise, we're creating a new one
-  const [staff, setStaff] = useState<NewStaffMember | StaffMember>(
-    initialStaff || defaultNewStaff
-  );
-  
-  // For new qualification form
-  const [newQualification, setNewQualification] = useState({
-    degree: '',
-    institution: '',
-    year: '',
+export function useStaffForm(initialData?: Partial<StaffFormData>) {
+  const router = useRouter();
+  const [formData, setFormData] = useState<StaffFormData>({
+    ...defaultFormData,
+    ...initialData,
+  });
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const createStaff = useMutation({
+    mutationFn: async (data: StaffFormData) => {
+      try {
+        const response = await axios.post("/api/staff", data);
+        if (!response.data) {
+          throw new Error("No response from server");
+        }
+        return response.data;
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.error || error.message;
+        console.error("Staff creation error:", errorMessage);
+        throw new Error(errorMessage);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      toast({
+        title: "Success",
+        description: "Staff member created successfully",
+      });
+      setFormData(defaultFormData);
+      router.refresh();
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to create staff member",
+      });
+    },
   });
 
-  // Handle input changes for basic staff info
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setStaff((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  // Handle nested object changes (like emergencyContact)
-  const handleNestedInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-    nestedKey: string
+  const handleWorkingHoursChange = (
+    index: number,
+    field: 'startTime' | 'endTime',
+    value: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      workingHours: prev.workingHours?.map((hours, i) =>
+        i === index ? { ...hours, [field]: value } : hours
+      ),
+    }));
+  };
+
+  const handleEmergencyContactChange = (
+    e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const { name, value } = e.target;
-    setStaff((prev) => ({
+    setFormData((prev) => ({
       ...prev,
-      [nestedKey]: {
-        ...(prev[nestedKey as keyof typeof prev] as any),
+      emergencyContact: {
+        ...prev.emergencyContact!,
         [name]: value,
       },
     }));
   };
 
-  // Handle deeply nested object changes (like payroll.bankDetails)
-  const handleDeepNestedInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-    parentKey: string,
-    childKey: string
-  ) => {
-    const { name, value } = e.target;
-    setStaff((prev) => ({
+  const addQualification = (qualification: {
+    degree: string;
+    institution: string;
+    year: string;
+  }) => {
+    setFormData((prev) => ({
       ...prev,
-      [parentKey]: {
-        ...(prev[parentKey as keyof typeof prev] as any),
-        [childKey]: {
-          ...((prev[parentKey as keyof typeof prev] as any)[childKey]),
-          [name]: value,
-        },
-      },
+      qualifications: [...(prev.qualifications || []), qualification],
     }));
   };
 
-  // Handle working hours changes
-  const handleWorkingHoursChange = (
-    day: string,
-    timeType: 'start' | 'end',
-    value: string
-  ) => {
-    setStaff((prev) => ({
+  const removeQualification = (index: number) => {
+    setFormData((prev) => ({
       ...prev,
-      workingHours: {
-        ...prev.workingHours,
-        [day]: {
-          ...prev.workingHours[day as keyof typeof prev.workingHours],
-          [timeType]: value,
-        },
-      },
+      qualifications: prev.qualifications?.filter((_, i) => i !== index),
     }));
   };
 
-  // Handle qualification input changes
-  const handleQualificationInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setNewQualification((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const validateForm = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    if (!formData.email) errors.push("Email is required");
+    if (!formData.password) errors.push("Password is required");
+    if (!formData.firstName) errors.push("First name is required");
+    if (!formData.lastName) errors.push("Last name is required");
+    if (!formData.role) errors.push("Role is required");
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
   };
 
-  // Add a qualification to the staff member
-  const addQualification = () => {
-    if (newQualification.degree && newQualification.institution && newQualification.year) {
-      setStaff((prev) => ({
-        ...prev,
-        qualifications: [
-          ...prev.qualifications,
-          {
-            id: `temp-${Date.now()}`, // Temporary ID for UI purposes
-            ...newQualification,
-          },
-        ],
-      }));
-      setNewQualification({
-        degree: '',
-        institution: '',
-        year: '',
+  const submitForm = async () => {
+    const { isValid, errors } = validateForm();
+    
+    if (!isValid) {
+      errors.forEach(error => {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: error,
+        });
       });
+      return;
     }
-  };
 
-  // Remove a qualification from the staff member
-  const removeQualification = (id: string) => {
-    setStaff((prev) => ({
-      ...prev,
-      qualifications: prev.qualifications.filter((q) => q.id !== id),
-    }));
-  };
-
-  // Reset the form
-  const resetForm = () => {
-    setStaff(initialStaff || defaultNewStaff);
-    setNewQualification({
-      degree: '',
-      institution: '',
-      year: '',
-    });
+    await createStaff.mutateAsync(formData);
   };
 
   return {
-    staff,
-    setStaff,
-    newQualification,
+    formData,
+    setFormData,
     handleInputChange,
-    handleNestedInputChange,
-    handleDeepNestedInputChange,
     handleWorkingHoursChange,
-    handleQualificationInputChange,
+    handleEmergencyContactChange,
     addQualification,
     removeQualification,
-    resetForm,
+    submitForm,
+    isCreating: createStaff.isPending,
+    error: createStaff.error,
   };
 } 

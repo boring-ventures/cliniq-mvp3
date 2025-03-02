@@ -42,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useStaff, NewStaffMember } from "@/hooks/use-staff";
-import { useStaffForm } from "@/hooks/use-staff-form";
+import { useStaffForm, defaultFormData } from "@/hooks/use-staff-form";
 import {
   useStaffPermissions,
   StaffPermission,
@@ -50,6 +50,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { useRouter } from "next/navigation";
 
 export default function StaffPage() {
   // Get staff data and operations
@@ -83,13 +84,15 @@ export default function StaffPage() {
 
   // Staff form hook
   const {
-    staff,
-    setStaff,
+    formData,
     handleInputChange,
-    handleNestedInputChange,
-    handleDeepNestedInputChange,
     handleWorkingHoursChange,
-    resetForm,
+    handleEmergencyContactChange,
+    submitForm,
+    isCreating,
+    addQualification,
+    removeQualification,
+    setFormData,
   } = useStaffForm();
 
   const { toast } = useToast();
@@ -98,30 +101,17 @@ export default function StaffPage() {
   const [editStaffModalOpen, setEditStaffModalOpen] = useState(false);
   const [staffToEdit, setStaffToEdit] = useState<string | null>(null);
 
+  const router = useRouter();
+
   // Handle staff creation
-  const handleCreateStaff = () => {
-    if (!staff.name || !staff.email || !staff.role) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please fill in all required fields",
-      });
-      return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await submitForm();
+      setNewStaffModalOpen(false);
+    } catch (error) {
+      console.error("Form submission error:", error);
     }
-
-    // Cast to NewStaffMember to ensure password is included
-    const newStaff = staff as NewStaffMember;
-
-    createStaff(newStaff, {
-      onSuccess: () => {
-        setNewStaffModalOpen(false);
-        resetForm();
-        toast({
-          title: "Success",
-          description: "Staff member created successfully",
-        });
-      },
-    });
   };
 
   // Handle staff deletion
@@ -145,54 +135,36 @@ export default function StaffPage() {
     }
   };
 
-  // Handle password input change separately
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    // Use type assertion to tell TypeScript that we're working with NewStaffMember
-    const newStaff = { ...staff } as NewStaffMember;
-    newStaff.password = value;
-    // Update the staff state
-    resetForm();
-    // @ts-ignore - This is a workaround for the type issue
-    staff.password = value;
-  };
-
-  // Function to handle opening the edit modal
-  const handleEditStaff = (staffId: string) => {
-    // Find the staff member to edit
-    const staffMember = staffMembers.find((s) => s.id === staffId);
-    if (staffMember) {
-      // Set the form state with the staff member's data
-      setStaff(staffMember);
-      setStaffToEdit(staffId);
-      setEditStaffModalOpen(true);
-    }
-  };
-
-  // Function to handle the edit submission
-  const handleUpdateStaff = () => {
-    if (!staffToEdit || !staff.name || !staff.email || !staff.role) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please fill in all required fields",
-      });
-      return;
-    }
-
-    updateStaff(
-      {
-        id: staffToEdit,
-        data: staff,
-      },
-      {
-        onSuccess: () => {
-          setEditStaffModalOpen(false);
-          setStaffToEdit(null);
-          resetForm();
-        },
-      }
+  // Add near other handler functions
+  const handleEditStaff = (id: string) => {
+    setStaffToEdit(id);
+    setEditStaffModalOpen(true);
+    const staffMember = staffMembers?.find(
+      (staff: StaffMember) => staff.id === id
     );
+    if (staffMember) {
+      // Transform working hours from object to array format
+      const workingHours = Object.entries(staffMember.workingHours).map(
+        ([day, hours]: [string, { start: string; end: string }]) => ({
+          dayOfWeek: day.toUpperCase(),
+          startTime: hours.start,
+          endTime: hours.end,
+        })
+      );
+
+      setFormData({
+        ...defaultFormData,
+        email: staffMember.email,
+        firstName: staffMember.name.split(" ")[0],
+        lastName: staffMember.name.split(" ")[1] || "",
+        role: staffMember.role as any,
+        specialty: staffMember.specialty,
+        phone: staffMember.phone,
+        status: staffMember.status as "active" | "inactive",
+        workingHours,
+        payroll: staffMember.payroll,
+      });
+    }
   };
 
   // If the user doesn't have permission to view staff
@@ -260,12 +232,13 @@ export default function StaffPage() {
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="flex gap-1">
                   <Users className="h-3.5 w-3.5" />
-                  <span>{staffMembers.length} Staff</span>
+                  <span>{staffMembers?.length || 0} Staff</span>
                 </Badge>
                 <Badge variant="outline" className="flex gap-1">
                   <UserCheck className="h-3.5 w-3.5" />
                   <span>
-                    {staffMembers.filter((s) => s.status === "active").length}{" "}
+                    {staffMembers?.filter((s: any) => s.status === "active")
+                      .length || 0}{" "}
                     Active
                   </span>
                 </Badge>
@@ -273,12 +246,18 @@ export default function StaffPage() {
             </div>
 
             {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="flex items-center justify-center h-64">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <p className="text-sm text-muted-foreground">
+                    Loading staff data...
+                  </p>
+                </div>
               </div>
             ) : error ? (
-              <div className="text-center py-8 text-destructive">
-                Error loading staff data. Please try again.
+              <div className="flex flex-col items-center justify-center h-64">
+                <p className="text-red-500 mb-2">Error loading staff data</p>
+                <Button onClick={() => router.refresh()}>Try Again</Button>
               </div>
             ) : (
               <Table>
@@ -293,16 +272,11 @@ export default function StaffPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {staffMembers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        No staff members found.{" "}
-                        {canCreateStaff &&
-                          "Add your first staff member to get started."}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    staffMembers.map((staff) => (
+                  {!isLoading &&
+                  !error &&
+                  staffMembers &&
+                  staffMembers.length > 0 ? (
+                    staffMembers.map((staff: any) => (
                       <TableRow key={staff.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -378,6 +352,12 @@ export default function StaffPage() {
                         </TableCell>
                       </TableRow>
                     ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        No staff members found
+                      </TableCell>
+                    </TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -403,55 +383,45 @@ export default function StaffPage() {
             <TabsContent value="basic" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
-                    id="name"
-                    name="name"
-                    value={staff.name}
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
                     onChange={handleInputChange}
-                    required
+                    placeholder="First Name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="role">Role *</Label>
-                  <Select
-                    value={staff.role}
-                    onValueChange={(value) => {
-                      handleInputChange({
-                        target: { name: "role", value },
-                      } as any);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DOCTOR">Doctor</SelectItem>
-                      <SelectItem value="RECEPTIONIST">Receptionist</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    placeholder="Last Name"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     name="email"
                     type="email"
-                    value={staff.email}
+                    value={formData.email}
                     onChange={handleInputChange}
-                    required
+                    placeholder="Email"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
+                  <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
                     name="password"
                     type="password"
-                    onChange={handlePasswordChange}
-                    required
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="Password"
                   />
                 </div>
                 <div className="space-y-2">
@@ -459,14 +429,14 @@ export default function StaffPage() {
                   <Input
                     id="phone"
                     name="phone"
-                    value={staff.phone}
+                    value={formData.phone}
                     onChange={handleInputChange}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
                   <Select
-                    value={staff.status}
+                    value={formData.status}
                     onValueChange={(value) => {
                       handleInputChange({
                         target: { name: "status", value },
@@ -492,7 +462,7 @@ export default function StaffPage() {
                   <Input
                     id="specialty"
                     name="specialty"
-                    value={staff.specialty || ""}
+                    value={formData.specialty || ""}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -502,7 +472,7 @@ export default function StaffPage() {
                     id="dateOfBirth"
                     name="dateOfBirth"
                     type="date"
-                    value={staff.dateOfBirth}
+                    value={formData.dateOfBirth}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -512,7 +482,7 @@ export default function StaffPage() {
                     id="joinDate"
                     name="joinDate"
                     type="date"
-                    value={staff.joinDate}
+                    value={formData.joinDate}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -521,7 +491,7 @@ export default function StaffPage() {
                   <Input
                     id="address"
                     name="address"
-                    value={staff.address}
+                    value={formData.address}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -530,7 +500,7 @@ export default function StaffPage() {
                   <Textarea
                     id="notes"
                     name="notes"
-                    value={staff.notes}
+                    value={formData.notes}
                     onChange={handleInputChange}
                     rows={3}
                   />
@@ -545,10 +515,8 @@ export default function StaffPage() {
                     <Input
                       id="emergencyName"
                       name="name"
-                      value={staff.emergencyContact.name}
-                      onChange={(e) =>
-                        handleNestedInputChange(e, "emergencyContact")
-                      }
+                      value={formData.emergencyContact?.name}
+                      onChange={handleEmergencyContactChange}
                     />
                   </div>
                   <div className="space-y-2">
@@ -556,10 +524,8 @@ export default function StaffPage() {
                     <Input
                       id="emergencyRelationship"
                       name="relationship"
-                      value={staff.emergencyContact.relationship}
-                      onChange={(e) =>
-                        handleNestedInputChange(e, "emergencyContact")
-                      }
+                      value={formData.emergencyContact?.relationship}
+                      onChange={handleEmergencyContactChange}
                     />
                   </div>
                   <div className="space-y-2">
@@ -567,10 +533,8 @@ export default function StaffPage() {
                     <Input
                       id="emergencyPhone"
                       name="phone"
-                      value={staff.emergencyContact.phone}
-                      onChange={(e) =>
-                        handleNestedInputChange(e, "emergencyContact")
-                      }
+                      value={formData.emergencyContact?.phone}
+                      onChange={handleEmergencyContactChange}
                     />
                   </div>
                 </div>
@@ -601,19 +565,43 @@ export default function StaffPage() {
 
                       <Switch
                         checked={
-                          !!staff.workingHours[
-                            day as keyof typeof staff.workingHours
-                          ].start
+                          !!formData.workingHours?.find(
+                            (hours) => hours.dayOfWeek === day
+                          )
                         }
                         onCheckedChange={(checked) => {
                           if (checked) {
                             // When enabled, set default hours (9-5)
-                            handleWorkingHoursChange(day, "start", "09:00");
-                            handleWorkingHoursChange(day, "end", "17:00");
+                            handleWorkingHoursChange(
+                              formData.workingHours?.findIndex(
+                                (hours) => hours.dayOfWeek === day
+                              ) || 0,
+                              "startTime",
+                              "09:00"
+                            );
+                            handleWorkingHoursChange(
+                              formData.workingHours?.findIndex(
+                                (hours) => hours.dayOfWeek === day
+                              ) || 0,
+                              "endTime",
+                              "17:00"
+                            );
                           } else {
                             // When disabled, clear hours
-                            handleWorkingHoursChange(day, "start", "");
-                            handleWorkingHoursChange(day, "end", "");
+                            handleWorkingHoursChange(
+                              formData.workingHours?.findIndex(
+                                (hours) => hours.dayOfWeek === day
+                              ) || 0,
+                              "startTime",
+                              ""
+                            );
+                            handleWorkingHoursChange(
+                              formData.workingHours?.findIndex(
+                                (hours) => hours.dayOfWeek === day
+                              ) || 0,
+                              "endTime",
+                              ""
+                            );
                           }
                         }}
                       />
@@ -621,17 +609,23 @@ export default function StaffPage() {
                       <div className="flex-1 flex items-center gap-2">
                         <Select
                           value={
-                            staff.workingHours[
-                              day as keyof typeof staff.workingHours
-                            ].start
+                            formData.workingHours?.find(
+                              (hours) => hours.dayOfWeek === day
+                            )?.startTime
                           }
                           onValueChange={(value) =>
-                            handleWorkingHoursChange(day, "start", value)
+                            handleWorkingHoursChange(
+                              formData.workingHours?.findIndex(
+                                (hours) => hours.dayOfWeek === day
+                              ) || 0,
+                              "startTime",
+                              value
+                            )
                           }
                           disabled={
-                            !staff.workingHours[
-                              day as keyof typeof staff.workingHours
-                            ].start
+                            !formData.workingHours?.find(
+                              (hours) => hours.dayOfWeek === day
+                            )?.startTime
                           }
                         >
                           <SelectTrigger className="w-full">
@@ -656,17 +650,23 @@ export default function StaffPage() {
 
                         <Select
                           value={
-                            staff.workingHours[
-                              day as keyof typeof staff.workingHours
-                            ].end
+                            formData.workingHours?.find(
+                              (hours) => hours.dayOfWeek === day
+                            )?.endTime
                           }
                           onValueChange={(value) =>
-                            handleWorkingHoursChange(day, "end", value)
+                            handleWorkingHoursChange(
+                              formData.workingHours?.findIndex(
+                                (hours) => hours.dayOfWeek === day
+                              ) || 0,
+                              "endTime",
+                              value
+                            )
                           }
                           disabled={
-                            !staff.workingHours[
-                              day as keyof typeof staff.workingHours
-                            ].start
+                            !formData.workingHours?.find(
+                              (hours) => hours.dayOfWeek === day
+                            )?.startTime
                           }
                         >
                           <SelectTrigger className="w-full">
@@ -699,20 +699,48 @@ export default function StaffPage() {
                     size="sm"
                     onClick={() => {
                       // Set standard 9-5 hours for weekdays
-                      const standardHours = {
-                        monday: { start: "09:00", end: "17:00" },
-                        tuesday: { start: "09:00", end: "17:00" },
-                        wednesday: { start: "09:00", end: "17:00" },
-                        thursday: { start: "09:00", end: "17:00" },
-                        friday: { start: "09:00", end: "17:00" },
-                        saturday: { start: "", end: "" },
-                        sunday: { start: "", end: "" },
-                      };
+                      const standardHours = [
+                        {
+                          dayOfWeek: "MONDAY",
+                          startTime: "09:00",
+                          endTime: "17:00",
+                        },
+                        {
+                          dayOfWeek: "TUESDAY",
+                          startTime: "09:00",
+                          endTime: "17:00",
+                        },
+                        {
+                          dayOfWeek: "WEDNESDAY",
+                          startTime: "09:00",
+                          endTime: "17:00",
+                        },
+                        {
+                          dayOfWeek: "THURSDAY",
+                          startTime: "09:00",
+                          endTime: "17:00",
+                        },
+                        {
+                          dayOfWeek: "FRIDAY",
+                          startTime: "09:00",
+                          endTime: "17:00",
+                        },
+                        { dayOfWeek: "SATURDAY", startTime: "", endTime: "" },
+                        { dayOfWeek: "SUNDAY", startTime: "", endTime: "" },
+                      ];
 
                       // Update all working hours at once
-                      Object.entries(standardHours).forEach(([day, hours]) => {
-                        handleWorkingHoursChange(day, "start", hours.start);
-                        handleWorkingHoursChange(day, "end", hours.end);
+                      standardHours.forEach((hours, index) => {
+                        handleWorkingHoursChange(
+                          index,
+                          "startTime",
+                          hours.startTime
+                        );
+                        handleWorkingHoursChange(
+                          index,
+                          "endTime",
+                          hours.endTime
+                        );
                       });
                     }}
                   >
@@ -723,20 +751,28 @@ export default function StaffPage() {
                     size="sm"
                     onClick={() => {
                       // Clear all hours
-                      const emptyHours = {
-                        monday: { start: "", end: "" },
-                        tuesday: { start: "", end: "" },
-                        wednesday: { start: "", end: "" },
-                        thursday: { start: "", end: "" },
-                        friday: { start: "", end: "" },
-                        saturday: { start: "", end: "" },
-                        sunday: { start: "", end: "" },
-                      };
+                      const emptyHours = [
+                        { dayOfWeek: "MONDAY", startTime: "", endTime: "" },
+                        { dayOfWeek: "TUESDAY", startTime: "", endTime: "" },
+                        { dayOfWeek: "WEDNESDAY", startTime: "", endTime: "" },
+                        { dayOfWeek: "THURSDAY", startTime: "", endTime: "" },
+                        { dayOfWeek: "FRIDAY", startTime: "", endTime: "" },
+                        { dayOfWeek: "SATURDAY", startTime: "", endTime: "" },
+                        { dayOfWeek: "SUNDAY", startTime: "", endTime: "" },
+                      ];
 
                       // Update all working hours at once
-                      Object.entries(emptyHours).forEach(([day, hours]) => {
-                        handleWorkingHoursChange(day, "start", hours.start);
-                        handleWorkingHoursChange(day, "end", hours.end);
+                      emptyHours.forEach((hours, index) => {
+                        handleWorkingHoursChange(
+                          index,
+                          "startTime",
+                          hours.startTime
+                        );
+                        handleWorkingHoursChange(
+                          index,
+                          "endTime",
+                          hours.endTime
+                        );
                       });
                     }}
                   >
@@ -754,21 +790,18 @@ export default function StaffPage() {
                       id="salary"
                       name="salary"
                       type="number"
-                      value={staff.payroll.salary.toString()}
-                      onChange={(e) => handleNestedInputChange(e, "payroll")}
+                      value={formData.payroll?.salary.toString()}
+                      onChange={(e) => handleInputChange(e)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="paymentFrequency">Payment Frequency</Label>
                     <Select
-                      value={staff.payroll.paymentFrequency}
+                      value={formData.payroll?.paymentFrequency}
                       onValueChange={(value) => {
-                        handleNestedInputChange(
-                          {
-                            target: { name: "paymentFrequency", value },
-                          } as any,
-                          "payroll"
-                        );
+                        handleInputChange({
+                          target: { name: "paymentFrequency", value },
+                        } as any);
                       }}
                     >
                       <SelectTrigger>
@@ -791,14 +824,8 @@ export default function StaffPage() {
                       <Input
                         id="accountName"
                         name="accountName"
-                        value={staff.payroll.bankDetails.accountName}
-                        onChange={(e) =>
-                          handleDeepNestedInputChange(
-                            e,
-                            "payroll",
-                            "bankDetails"
-                          )
-                        }
+                        value={formData.payroll?.bankDetails?.accountName}
+                        onChange={(e) => handleInputChange(e)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -806,14 +833,8 @@ export default function StaffPage() {
                       <Input
                         id="accountNumber"
                         name="accountNumber"
-                        value={staff.payroll.bankDetails.accountNumber}
-                        onChange={(e) =>
-                          handleDeepNestedInputChange(
-                            e,
-                            "payroll",
-                            "bankDetails"
-                          )
-                        }
+                        value={formData.payroll?.bankDetails?.accountNumber}
+                        onChange={(e) => handleInputChange(e)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -821,14 +842,8 @@ export default function StaffPage() {
                       <Input
                         id="bankName"
                         name="bankName"
-                        value={staff.payroll.bankDetails.bankName}
-                        onChange={(e) =>
-                          handleDeepNestedInputChange(
-                            e,
-                            "payroll",
-                            "bankDetails"
-                          )
-                        }
+                        value={formData.payroll?.bankDetails?.bankName}
+                        onChange={(e) => handleInputChange(e)}
                       />
                     </div>
                   </div>
@@ -842,13 +857,108 @@ export default function StaffPage() {
               variant="outline"
               onClick={() => {
                 setNewStaffModalOpen(false);
-                resetForm();
+                handleInputChange({
+                  target: {
+                    name: "firstName",
+                    value: "",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "lastName",
+                    value: "",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "email",
+                    value: "",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "password",
+                    value: "",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "phone",
+                    value: "",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "role",
+                    value: "DOCTOR",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "status",
+                    value: "active",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "specialty",
+                    value: "",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "dateOfBirth",
+                    value: "",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "joinDate",
+                    value: "",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "address",
+                    value: "",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "notes",
+                    value: "",
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "emergencyContact",
+                    value: {
+                      name: "",
+                      relationship: "",
+                      phone: "",
+                    },
+                  },
+                } as any);
+                handleInputChange({
+                  target: {
+                    name: "payroll",
+                    value: {
+                      salary: 0,
+                      paymentFrequency: "Weekly",
+                      bankDetails: {
+                        accountName: "",
+                        accountNumber: "",
+                        bankName: "",
+                      },
+                    },
+                  },
+                } as any);
               }}
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateStaff} disabled={isCreatingStaff}>
-              {isCreatingStaff ? "Creating..." : "Create Staff"}
+            <Button onClick={handleSubmit} disabled={isCreating}>
+              {isCreating ? "Creating..." : "Create Staff Member"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -883,440 +993,6 @@ export default function StaffPage() {
               disabled={isDeletingStaff}
             >
               {isDeletingStaff ? "Deleting..." : "Delete Staff"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Staff Modal */}
-      <Dialog open={editStaffModalOpen} onOpenChange={setEditStaffModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Staff Member</DialogTitle>
-          </DialogHeader>
-
-          <Tabs defaultValue="basic">
-            <TabsList className="grid w-full grid-cols-3 sticky top-0 bg-background z-10">
-              <TabsTrigger value="basic">Basic Info</TabsTrigger>
-              <TabsTrigger value="contact">Contact</TabsTrigger>
-              <TabsTrigger value="payroll">Work & Payroll</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="basic">
-              <div className="space-y-4 py-2 pb-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={staff.name}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={staff.email}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={staff.phone}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Select
-                      value={staff.role}
-                      onValueChange={(value) => {
-                        handleInputChange({
-                          target: { name: "role", value },
-                        } as any);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DOCTOR">Doctor</SelectItem>
-                        <SelectItem value="RECEPTIONIST">
-                          Receptionist
-                        </SelectItem>
-                        <SelectItem value="ADMIN">Admin</SelectItem>
-                        <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select
-                      value={staff.status}
-                      onValueChange={(value) => {
-                        handleInputChange({
-                          target: { name: "status", value },
-                        } as any);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="contact">
-              <div className="space-y-4 py-2 pb-4">
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Textarea
-                    id="address"
-                    name="address"
-                    value={staff.address}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Emergency Contact</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="emergencyName">Name</Label>
-                      <Input
-                        id="emergencyName"
-                        name="name"
-                        value={staff.emergencyContact.name}
-                        onChange={(e) =>
-                          handleNestedInputChange(e, "emergencyContact")
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="emergencyRelationship">
-                        Relationship
-                      </Label>
-                      <Input
-                        id="emergencyRelationship"
-                        name="relationship"
-                        value={staff.emergencyContact.relationship}
-                        onChange={(e) =>
-                          handleNestedInputChange(e, "emergencyContact")
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="emergencyPhone">Phone</Label>
-                      <Input
-                        id="emergencyPhone"
-                        name="phone"
-                        value={staff.emergencyContact.phone}
-                        onChange={(e) =>
-                          handleNestedInputChange(e, "emergencyContact")
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="payroll">
-              <div className="space-y-6 py-2 pb-4">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Working Hours</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Set the working days and hours for this staff member.
-                  </p>
-
-                  <div className="space-y-4">
-                    {[
-                      "monday",
-                      "tuesday",
-                      "wednesday",
-                      "thursday",
-                      "friday",
-                      "saturday",
-                      "sunday",
-                    ].map((day) => (
-                      <div key={day} className="flex items-center gap-4">
-                        <div className="w-28">
-                          <Label className="capitalize font-medium">
-                            {day}
-                          </Label>
-                        </div>
-
-                        <Switch
-                          checked={
-                            !!staff.workingHours[
-                              day as keyof typeof staff.workingHours
-                            ].start
-                          }
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              // When enabled, set default hours (9-5)
-                              handleWorkingHoursChange(day, "start", "09:00");
-                              handleWorkingHoursChange(day, "end", "17:00");
-                            } else {
-                              // When disabled, clear hours
-                              handleWorkingHoursChange(day, "start", "");
-                              handleWorkingHoursChange(day, "end", "");
-                            }
-                          }}
-                        />
-
-                        <div className="flex-1 flex items-center gap-2">
-                          <Select
-                            value={
-                              staff.workingHours[
-                                day as keyof typeof staff.workingHours
-                              ].start
-                            }
-                            onValueChange={(value) =>
-                              handleWorkingHoursChange(day, "start", value)
-                            }
-                            disabled={
-                              !staff.workingHours[
-                                day as keyof typeof staff.workingHours
-                              ].start
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="09:00" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[
-                                "08:00",
-                                "08:30",
-                                "09:00",
-                                "09:30",
-                                "10:00",
-                                "10:30",
-                                "11:00",
-                              ].map((time) => (
-                                <SelectItem key={time} value={time}>
-                                  {time}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          <Select
-                            value={
-                              staff.workingHours[
-                                day as keyof typeof staff.workingHours
-                              ].end
-                            }
-                            onValueChange={(value) =>
-                              handleWorkingHoursChange(day, "end", value)
-                            }
-                            disabled={
-                              !staff.workingHours[
-                                day as keyof typeof staff.workingHours
-                              ].start
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="17:00" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[
-                                "16:00",
-                                "16:30",
-                                "17:00",
-                                "17:30",
-                                "18:00",
-                                "18:30",
-                                "19:00",
-                              ].map((time) => (
-                                <SelectItem key={time} value={time}>
-                                  {time}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // Set standard 9-5 hours for weekdays
-                        const standardHours = {
-                          monday: { start: "09:00", end: "17:00" },
-                          tuesday: { start: "09:00", end: "17:00" },
-                          wednesday: { start: "09:00", end: "17:00" },
-                          thursday: { start: "09:00", end: "17:00" },
-                          friday: { start: "09:00", end: "17:00" },
-                          saturday: { start: "", end: "" },
-                          sunday: { start: "", end: "" },
-                        };
-
-                        // Update all working hours at once
-                        Object.entries(standardHours).forEach(
-                          ([day, hours]) => {
-                            handleWorkingHoursChange(day, "start", hours.start);
-                            handleWorkingHoursChange(day, "end", hours.end);
-                          }
-                        );
-                      }}
-                    >
-                      Set Standard Hours
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // Clear all hours
-                        const emptyHours = {
-                          monday: { start: "", end: "" },
-                          tuesday: { start: "", end: "" },
-                          wednesday: { start: "", end: "" },
-                          thursday: { start: "", end: "" },
-                          friday: { start: "", end: "" },
-                          saturday: { start: "", end: "" },
-                          sunday: { start: "", end: "" },
-                        };
-
-                        // Update all working hours at once
-                        Object.entries(emptyHours).forEach(([day, hours]) => {
-                          handleWorkingHoursChange(day, "start", hours.start);
-                          handleWorkingHoursChange(day, "end", hours.end);
-                        });
-                      }}
-                    >
-                      Clear All
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Payroll Information</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="salary">Salary</Label>
-                      <Input
-                        id="salary"
-                        name="salary"
-                        type="number"
-                        value={staff.payroll.salary.toString()}
-                        onChange={(e) => handleNestedInputChange(e, "payroll")}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="paymentFrequency">
-                        Payment Frequency
-                      </Label>
-                      <Select
-                        value={staff.payroll.paymentFrequency}
-                        onValueChange={(value) => {
-                          handleNestedInputChange(
-                            {
-                              target: { name: "paymentFrequency", value },
-                            } as any,
-                            "payroll"
-                          );
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select frequency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Weekly">Weekly</SelectItem>
-                          <SelectItem value="Biweekly">Biweekly</SelectItem>
-                          <SelectItem value="Monthly">Monthly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 mt-4">
-                    <h4 className="font-medium">Bank Details</h4>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="accountName">Account Name</Label>
-                        <Input
-                          id="accountName"
-                          name="accountName"
-                          value={staff.payroll.bankDetails.accountName}
-                          onChange={(e) =>
-                            handleDeepNestedInputChange(
-                              e,
-                              "payroll",
-                              "bankDetails"
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="accountNumber">Account Number</Label>
-                        <Input
-                          id="accountNumber"
-                          name="accountNumber"
-                          value={staff.payroll.bankDetails.accountNumber}
-                          onChange={(e) =>
-                            handleDeepNestedInputChange(
-                              e,
-                              "payroll",
-                              "bankDetails"
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bankName">Bank Name</Label>
-                        <Input
-                          id="bankName"
-                          name="bankName"
-                          value={staff.payroll.bankDetails.bankName}
-                          onChange={(e) =>
-                            handleDeepNestedInputChange(
-                              e,
-                              "payroll",
-                              "bankDetails"
-                            )
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <DialogFooter className="sticky bottom-0 bg-background pt-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setEditStaffModalOpen(false);
-                setStaffToEdit(null);
-                resetForm();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateStaff} disabled={isUpdatingStaff}>
-              {isUpdatingStaff ? "Updating..." : "Update Staff"}
             </Button>
           </DialogFooter>
         </DialogContent>

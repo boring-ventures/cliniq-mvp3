@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useToast } from '@/components/ui/use-toast';
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter } from 'next/navigation';
 
 // Types
 export interface StaffMember {
@@ -62,31 +64,50 @@ export interface NewStaffMember extends Omit<StaffMember, 'id' | 'initials'> {
 }
 
 export function useStaff() {
+  const supabase = createClientComponentClient();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const router = useRouter();
   const [filterRole, setFilterRole] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Fetch all staff members
   const {
     data: staffMembers = [],
     isLoading,
     error,
-    refetch,
-  } = useQuery<StaffMember[]>({
-    queryKey: ['staff', filterRole, searchQuery],
+    refetch
+  } = useQuery({
+    queryKey: ['staff'],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filterRole !== 'all') {
-        params.append('role', filterRole);
+      try {
+        // Check auth session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push('/auth/signin');
+          throw new Error('Not authenticated');
+        }
+
+        const response = await axios.get('/api/staff', {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        return response.data || [];
+      } catch (error: any) {
+        if (error.response?.status === 401) {
+          router.push('/auth/signin');
+        }
+        console.error('Error fetching staff:', error);
+        throw new Error(error.response?.data?.error || 'Failed to load staff data');
       }
-      if (searchQuery) {
-        params.append('search', searchQuery);
-      }
-      
-      const response = await axios.get(`/api/staff?${params.toString()}`);
-      return response.data;
     },
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401 errors
+      if (error.response?.status === 401) return false;
+      return failureCount < 3;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Fetch a single staff member
