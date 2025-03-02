@@ -541,310 +541,188 @@ export default function StaffPage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="work" className="space-y-6 py-2 pb-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Working Hours</h3>
-                <p className="text-sm text-muted-foreground">
-                  Set the working days and hours for this staff member.
-                </p>
-
+            <TabsContent value="work">
+              <div className="space-y-6">
+                {/* Working Hours Section */}
                 <div className="space-y-4">
-                  {[
-                    "monday",
-                    "tuesday",
-                    "wednesday",
-                    "thursday",
-                    "friday",
-                    "saturday",
-                    "sunday",
-                  ].map((day) => (
-                    <div key={day} className="flex items-center gap-4">
-                      <div className="w-28">
-                        <Label className="capitalize font-medium">{day}</Label>
+                  <h3 className="text-lg font-medium">Working Hours</h3>
+                  <div className="space-y-4">
+                    {["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"].map((day, index) => (
+                      <div key={day} className="grid grid-cols-[120px,1fr,1fr] gap-4 items-center">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={!!formData.workingHours?.[index]?.startTime}
+                            onCheckedChange={(checked) => {
+                              const newTime = checked ? "09:00" : "";
+                              handleWorkingHoursChange(index, "startTime", newTime);
+                              handleWorkingHoursChange(index, "endTime", checked ? "17:00" : "");
+                            }}
+                          />
+                          <span>{day.charAt(0) + day.slice(1).toLowerCase()}</span>
+                        </div>
+                        <Select
+                          value={formData.workingHours?.[index]?.startTime || ""}
+                          onValueChange={(value) => handleWorkingHoursChange(index, "startTime", value)}
+                          disabled={!formData.workingHours?.[index]?.startTime}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Start Time" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 24 }, (_, i) => {
+                              const hour = i.toString().padStart(2, '0');
+                              return [`${hour}:00`, `${hour}:30`];
+                            }).flat().map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={formData.workingHours?.[index]?.endTime || ""}
+                          onValueChange={(value) => handleWorkingHoursChange(index, "endTime", value)}
+                          disabled={!formData.workingHours?.[index]?.startTime}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="End Time" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 24 }, (_, i) => {
+                              const hour = i.toString().padStart(2, '0');
+                              return [`${hour}:00`, `${hour}:30`];
+                            }).flat().map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
+                    ))}
+                  </div>
+                </div>
 
-                      <Switch
-                        checked={
-                          !!formData.workingHours?.find(
-                            (hours) => hours.dayOfWeek === day
-                          )
-                        }
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            // When enabled, set default hours (9-5)
-                            handleWorkingHoursChange(
-                              formData.workingHours?.findIndex(
-                                (hours) => hours.dayOfWeek === day
-                              ) || 0,
-                              "startTime",
-                              "09:00"
-                            );
-                            handleWorkingHoursChange(
-                              formData.workingHours?.findIndex(
-                                (hours) => hours.dayOfWeek === day
-                              ) || 0,
-                              "endTime",
-                              "17:00"
-                            );
-                          } else {
-                            // When disabled, clear hours
-                            handleWorkingHoursChange(
-                              formData.workingHours?.findIndex(
-                                (hours) => hours.dayOfWeek === day
-                              ) || 0,
-                              "startTime",
-                              ""
-                            );
-                            handleWorkingHoursChange(
-                              formData.workingHours?.findIndex(
-                                (hours) => hours.dayOfWeek === day
-                              ) || 0,
-                              "endTime",
-                              ""
-                            );
-                          }
+                {/* Payroll Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Payroll Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="salary">Salary</Label>
+                      <Input
+                        id="salary"
+                        type="number"
+                        value={formData.payroll?.salary || 0}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value);
+                          handleInputChange({
+                            target: {
+                              name: "payroll",
+                              value: {
+                                ...formData.payroll,
+                                salary: isNaN(value) ? 0 : value
+                              }
+                            }
+                          } as any);
                         }}
+                        placeholder="Enter salary amount"
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentFrequency">Payment Frequency</Label>
+                      <Select
+                        value={formData.payroll?.paymentFrequency || "Monthly"}
+                        onValueChange={(value) => {
+                          handleInputChange({
+                            target: {
+                              name: "payroll",
+                              value: {
+                                ...formData.payroll,
+                                paymentFrequency: value
+                              }
+                            }
+                          } as any);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Weekly">Weekly</SelectItem>
+                          <SelectItem value="Biweekly">Biweekly</SelectItem>
+                          <SelectItem value="Monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-                      <div className="flex-1 flex items-center gap-2">
-                        <Select
-                          value={
-                            formData.workingHours?.find(
-                              (hours) => hours.dayOfWeek === day
-                            )?.startTime
-                          }
-                          onValueChange={(value) =>
-                            handleWorkingHoursChange(
-                              formData.workingHours?.findIndex(
-                                (hours) => hours.dayOfWeek === day
-                              ) || 0,
-                              "startTime",
-                              value
-                            )
-                          }
-                          disabled={
-                            !formData.workingHours?.find(
-                              (hours) => hours.dayOfWeek === day
-                            )?.startTime
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="09:00" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[
-                              "08:00",
-                              "08:30",
-                              "09:00",
-                              "09:30",
-                              "10:00",
-                              "10:30",
-                              "11:00",
-                            ].map((time) => (
-                              <SelectItem key={time} value={time}>
-                                {time}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        <Select
-                          value={
-                            formData.workingHours?.find(
-                              (hours) => hours.dayOfWeek === day
-                            )?.endTime
-                          }
-                          onValueChange={(value) =>
-                            handleWorkingHoursChange(
-                              formData.workingHours?.findIndex(
-                                (hours) => hours.dayOfWeek === day
-                              ) || 0,
-                              "endTime",
-                              value
-                            )
-                          }
-                          disabled={
-                            !formData.workingHours?.find(
-                              (hours) => hours.dayOfWeek === day
-                            )?.startTime
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="17:00" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[
-                              "16:00",
-                              "16:30",
-                              "17:00",
-                              "17:30",
-                              "18:00",
-                              "18:30",
-                              "19:00",
-                            ].map((time) => (
-                              <SelectItem key={time} value={time}>
-                                {time}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                  {/* Bank Details */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Bank Details</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="accountName">Account Name</Label>
+                        <Input
+                          id="accountName"
+                          value={formData.payroll?.bankDetails?.accountName || ""}
+                          onChange={(e) => {
+                            handleInputChange({
+                              target: {
+                                name: "payroll",
+                                value: {
+                                  ...formData.payroll,
+                                  bankDetails: {
+                                    ...formData.payroll?.bankDetails,
+                                    accountName: e.target.value
+                                  }
+                                }
+                              }
+                            } as any);
+                          }}
+                        />
                       </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Set standard 9-5 hours for weekdays
-                      const standardHours = [
-                        {
-                          dayOfWeek: "MONDAY",
-                          startTime: "09:00",
-                          endTime: "17:00",
-                        },
-                        {
-                          dayOfWeek: "TUESDAY",
-                          startTime: "09:00",
-                          endTime: "17:00",
-                        },
-                        {
-                          dayOfWeek: "WEDNESDAY",
-                          startTime: "09:00",
-                          endTime: "17:00",
-                        },
-                        {
-                          dayOfWeek: "THURSDAY",
-                          startTime: "09:00",
-                          endTime: "17:00",
-                        },
-                        {
-                          dayOfWeek: "FRIDAY",
-                          startTime: "09:00",
-                          endTime: "17:00",
-                        },
-                        { dayOfWeek: "SATURDAY", startTime: "", endTime: "" },
-                        { dayOfWeek: "SUNDAY", startTime: "", endTime: "" },
-                      ];
-
-                      // Update all working hours at once
-                      standardHours.forEach((hours, index) => {
-                        handleWorkingHoursChange(
-                          index,
-                          "startTime",
-                          hours.startTime
-                        );
-                        handleWorkingHoursChange(
-                          index,
-                          "endTime",
-                          hours.endTime
-                        );
-                      });
-                    }}
-                  >
-                    Set Standard Hours
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Clear all hours
-                      const emptyHours = [
-                        { dayOfWeek: "MONDAY", startTime: "", endTime: "" },
-                        { dayOfWeek: "TUESDAY", startTime: "", endTime: "" },
-                        { dayOfWeek: "WEDNESDAY", startTime: "", endTime: "" },
-                        { dayOfWeek: "THURSDAY", startTime: "", endTime: "" },
-                        { dayOfWeek: "FRIDAY", startTime: "", endTime: "" },
-                        { dayOfWeek: "SATURDAY", startTime: "", endTime: "" },
-                        { dayOfWeek: "SUNDAY", startTime: "", endTime: "" },
-                      ];
-
-                      // Update all working hours at once
-                      emptyHours.forEach((hours, index) => {
-                        handleWorkingHoursChange(
-                          index,
-                          "startTime",
-                          hours.startTime
-                        );
-                        handleWorkingHoursChange(
-                          index,
-                          "endTime",
-                          hours.endTime
-                        );
-                      });
-                    }}
-                  >
-                    Clear All
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium">Payroll Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="salary">Salary</Label>
-                    <Input
-                      id="salary"
-                      name="salary"
-                      type="number"
-                      value={formData.payroll?.salary.toString()}
-                      onChange={(e) => handleInputChange(e)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="paymentFrequency">Payment Frequency</Label>
-                    <Select
-                      value={formData.payroll?.paymentFrequency}
-                      onValueChange={(value) => {
-                        handleInputChange({
-                          target: { name: "paymentFrequency", value },
-                        } as any);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select frequency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Weekly">Weekly</SelectItem>
-                        <SelectItem value="Biweekly">Biweekly</SelectItem>
-                        <SelectItem value="Monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2 mt-4">
-                  <h4 className="font-medium">Bank Details</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="accountName">Account Name</Label>
-                      <Input
-                        id="accountName"
-                        name="accountName"
-                        value={formData.payroll?.bankDetails?.accountName}
-                        onChange={(e) => handleInputChange(e)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="accountNumber">Account Number</Label>
-                      <Input
-                        id="accountNumber"
-                        name="accountNumber"
-                        value={formData.payroll?.bankDetails?.accountNumber}
-                        onChange={(e) => handleInputChange(e)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bankName">Bank Name</Label>
-                      <Input
-                        id="bankName"
-                        name="bankName"
-                        value={formData.payroll?.bankDetails?.bankName}
-                        onChange={(e) => handleInputChange(e)}
-                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="accountNumber">Account Number</Label>
+                        <Input
+                          id="accountNumber"
+                          value={formData.payroll?.bankDetails?.accountNumber || ""}
+                          onChange={(e) => {
+                            handleInputChange({
+                              target: {
+                                name: "payroll",
+                                value: {
+                                  ...formData.payroll,
+                                  bankDetails: {
+                                    ...formData.payroll?.bankDetails,
+                                    accountNumber: e.target.value
+                                  }
+                                }
+                              }
+                            } as any);
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bankName">Bank Name</Label>
+                        <Input
+                          id="bankName"
+                          value={formData.payroll?.bankDetails?.bankName || ""}
+                          onChange={(e) => {
+                            handleInputChange({
+                              target: {
+                                name: "payroll",
+                                value: {
+                                  ...formData.payroll,
+                                  bankDetails: {
+                                    ...formData.payroll?.bankDetails,
+                                    bankName: e.target.value
+                                  }
+                                }
+                              }
+                            } as any);
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
